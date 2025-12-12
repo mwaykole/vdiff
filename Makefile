@@ -1,111 +1,187 @@
-# vdiff Serving Makefile
-# Common development tasks
+# vdiff Makefile
+# Production-ready development automation
 
-.PHONY: help install dev lint format test test-cov build run clean docker-build docker-run
+.PHONY: help install dev test lint format check clean build docker serve
 
 # Default target
 help:
-	@echo "vdiff Serving - Development Commands"
+	@echo "vdiff - vLLM-Compatible Serving for Diffusion LLMs"
+	@echo "==================================================="
 	@echo ""
-	@echo "Usage: make [target]"
+	@echo "Setup:"
+	@echo "  make install      Install package"
+	@echo "  make dev          Install with dev dependencies"
 	@echo ""
-	@echo "Targets:"
-	@echo "  install     Install production dependencies"
-	@echo "  dev         Install development dependencies"
-	@echo "  lint        Run linters (ruff, mypy)"
-	@echo "  format      Format code (black, isort)"
-	@echo "  test        Run tests"
-	@echo "  test-cov    Run tests with coverage"
-	@echo "  build       Build package"
-	@echo "  run         Run the server locally"
-	@echo "  clean       Clean build artifacts"
-	@echo "  docker-build Build Docker image"
-	@echo "  docker-run  Run Docker container"
+	@echo "Development:"
+	@echo "  make test         Run tests"
+	@echo "  make lint         Run linter"
+	@echo "  make format       Format code"
+	@echo "  make check        Run all checks (lint + test)"
+	@echo ""
+	@echo "Build:"
+	@echo "  make build        Build Python package"
+	@echo "  make docker       Build Docker image (GPU)"
+	@echo "  make docker-cpu   Build Docker image (CPU-only)"
+	@echo ""
+	@echo "Docker:"
+	@echo "  make docker-up    Start with docker-compose (GPU)"
+	@echo "  make docker-down  Stop docker-compose"
+	@echo "  make docker-logs  View container logs"
+	@echo ""
+	@echo "Run:"
+	@echo "  make serve        Start local server"
+	@echo "  make serve-llada  Start with LLaDA model"
+	@echo ""
+	@echo "Clean:"
+	@echo "  make clean        Remove build artifacts"
 
+# ============================================================================
 # Installation
+# ============================================================================
+
 install:
-	pip install -r requirements.txt
 	pip install -e .
 
 dev:
-	pip install -r requirements-dev.txt
-	pip install -e .
-	pre-commit install
+	pip install -e ".[dev]"
 
-# Linting and formatting
-lint:
-	ruff check vdiff tests
-	mypy vdiff --ignore-missing-imports
-
-format:
-	black vdiff tests
-	ruff check --fix vdiff tests
-	isort vdiff tests
-
+# ============================================================================
 # Testing
-test:
-	pytest tests/ -v
+# ============================================================================
 
-test-cov:
-	pytest tests/ -v --cov=vdiff --cov-report=term-missing --cov-report=html
+test:
+	pytest tests/ -v --tb=short
 
 test-unit:
-	pytest tests/unit/ -v
+	pytest tests/unit/ -v --tb=short
 
 test-integration:
-	pytest tests/integration/ -v
+	pytest tests/integration/ -v --tb=short -m integration
 
-test-compat:
-	pytest tests/compatibility/ -v
+test-coverage:
+	pytest tests/ -v --cov=vdiff --cov-report=html --cov-report=term-missing
 
-# Building
+# ============================================================================
+# Code Quality
+# ============================================================================
+
+lint:
+	ruff check vdiff/ tests/
+	mypy vdiff/ --ignore-missing-imports
+
+format:
+	black vdiff/ tests/
+	ruff check --fix vdiff/ tests/
+
+check: lint test
+	@echo "All checks passed!"
+
+# ============================================================================
+# Build
+# ============================================================================
+
 build:
+	pip install build
 	python -m build
 
-build-wheel:
-	pip wheel --no-deps -w dist .
+# Docker builds (matching vLLM style)
+docker:
+	docker build -t vdiff:latest .
 
-# Running
-run:
-	python -m vdiff.entrypoints.openai.api_server --model $(MODEL) --port 8000
+docker-cpu:
+	docker build --build-arg USE_CUDA=0 -t vdiff:cpu .
 
-run-dev:
-	uvicorn vdiff.entrypoints.openai.api_server:create_app --host 0.0.0.0 --port 8000 --reload --factory
+docker-cuda:
+	docker build --build-arg USE_CUDA=1 --build-arg CUDA_VERSION=12.4.1 -t vdiff:cuda .
 
-# Docker
-docker-build:
-	docker build -t vdiff-serving:latest -f deploy/docker/Dockerfile .
+# Docker Compose
+docker-up:
+	docker-compose up -d
 
-docker-build-dev:
-	docker build -t vdiff-serving:dev -f deploy/docker/Dockerfile.dev .
+docker-up-cpu:
+	docker-compose --profile cpu up -d vdiff-cpu
 
-docker-run:
-	docker run --gpus all -p 8000:8000 -e MODEL_NAME=$(MODEL) vdiff-serving:latest
+docker-down:
+	docker-compose down
 
-# Cleanup
+docker-logs:
+	docker-compose logs -f vdiff
+
+# ============================================================================
+# Run
+# ============================================================================
+
+# Default model for local testing
+MODEL ?= gpt2
+
+serve:
+	python -m vdiff.entrypoints.openai.api_server \
+		--model $(MODEL) \
+		--port 8000
+
+serve-dev:
+	uvicorn vdiff.entrypoints.openai.api_server:create_app \
+		--reload \
+		--host 0.0.0.0 \
+		--port 8000
+
+serve-llada:
+	python -m vdiff.entrypoints.openai.api_server \
+		--model GSAI-ML/LLaDA-8B-Instruct \
+		--port 8000 \
+		--trust-remote-code
+
+# ============================================================================
+# Clean
+# ============================================================================
+
 clean:
 	rm -rf build/
 	rm -rf dist/
 	rm -rf *.egg-info/
 	rm -rf .pytest_cache/
+	rm -rf .coverage
+	rm -rf htmlcov/
 	rm -rf .mypy_cache/
 	rm -rf .ruff_cache/
-	rm -rf htmlcov/
-	rm -rf .coverage
-	find . -type d -name __pycache__ -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
+# ============================================================================
 # Documentation
+# ============================================================================
+
 docs:
+	pip install -e ".[docs]"
 	mkdocs serve
 
 docs-build:
 	mkdocs build
 
-# Release helpers
-version:
-	@python -c "from vdiff.version import __version__; print(__version__)"
+# ============================================================================
+# Release
+# ============================================================================
 
-tag:
-	git tag v$(shell make version)
-	git push origin v$(shell make version)
+release-check:
+	@echo "Checking release readiness..."
+	@make check
+	@echo "Version: $(shell python -c 'from vdiff.version import __version__; print(__version__)')"
+	@echo "Ready for release!"
+
+release-build: clean
+	pip install build twine
+	python -m build
+	twine check dist/*
+
+# ============================================================================
+# Docker Compose (for development)
+# ============================================================================
+
+compose-up:
+	docker-compose up -d
+
+compose-down:
+	docker-compose down
+
+compose-logs:
+	docker-compose logs -f vdiff

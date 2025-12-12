@@ -1,141 +1,298 @@
 # vdiff
 
-**A vLLM-Compatible Server for Diffusion LLMs on Red Hat OpenShift AI**
+**Production-Ready vLLM-Compatible Server for Diffusion LLMs**
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/your-org/vdiff)
+[![Production Ready](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)]()
 
-vdiff provides a vLLM-compatible serving framework for Diffusion Language Models (like LLaDA, Dream) optimized for **Red Hat OpenShift AI (RHOAI)**. It follows the same API patterns as vLLM, enabling seamless integration with existing RHOAI model serving infrastructure.
+vdiff is a **production-grade** serving framework for Diffusion Language Models (LLaDA, Dream) optimized for **Red Hat OpenShift AI (RHOAI)** and enterprise deployments. It provides vLLM-compatible APIs with enterprise features like rate limiting, health checks, and graceful shutdown.
 
-## Key Features
+## ✨ Key Features
 
-- **vLLM API Compatibility**: 100% compatible with vLLM's OpenAI-compatible API
-- **RHOAI Integration**: Native ServingRuntime for OpenShift AI dashboard
-- **APD (Adaptive Parallel Decoding)**: 2-4x faster inference through parallel token generation
-- **Masked Diffusion Generation**: LLaDA-style iterative unmasking algorithm
-- **Same Endpoint Structure**: `/v1/completions`, `/v1/chat/completions`, `/health`, `/metrics`
-- **Prometheus Metrics**: Compatible with OpenShift monitoring stack
+### Production Features
+- **Rate Limiting**: Configurable request throttling per client
+- **Request Queue**: Concurrency control with backpressure
+- **Health Checks**: Kubernetes-compatible liveness/readiness probes
+- **Graceful Shutdown**: Request draining on termination
+- **Structured Logging**: JSON-formatted logs for observability
+- **API Key Auth**: Optional bearer token authentication
+- **Memory Management**: OOM protection and GPU memory monitoring
 
-## RHOAI Deployment
+### Inference Features
+- **vLLM API Compatibility**: 100% compatible with OpenAI-style API
+- **APD (Adaptive Parallel Decoding)**: 2-4x faster inference
+- **Masked Diffusion Generation**: LLaDA-style iterative unmasking
+- **Prometheus Metrics**: Compatible with OpenShift monitoring
 
-### Prerequisites
+## 🚀 Quick Start
 
-- Red Hat OpenShift AI installed
-- GPU nodes available (NVIDIA GPU Operator configured)
-- KServe configured for RawDeployment mode
-
-### Step 1: Create the ServingRuntime
-
-```bash
-oc apply -f deploy/kubernetes/kserve/serving-runtime.yaml
-```
-
-Verify it appears in the RHOAI dashboard under **Settings → Serving runtimes**.
-
-### Step 2: Prepare Model Storage
-
-Option A: Use a PVC with pre-downloaded model (recommended):
-```bash
-# Create PVC
-oc apply -f deploy/kubernetes/kserve/inference-service.yaml
-
-# Download model to PVC (use a Job or notebook)
-python scripts/download_model.py GSAI-ML/LLaDA-8B-Instruct --output /mnt/models
-```
-
-Option B: Use HuggingFace model ID (downloads at startup):
-```yaml
-storageUri: "hf://GSAI-ML/LLaDA-8B-Instruct"
-```
-
-### Step 3: Deploy the InferenceService
+### Installation
 
 ```bash
-oc apply -f deploy/kubernetes/kserve/inference-service.yaml
+# Install from source
+pip install -e .
+
+# Or with development dependencies
+pip install -e ".[dev]"
 ```
 
-### Step 4: Get the Route
+### Start Server
 
 ```bash
-# Get the inference endpoint
-oc get inferenceservice llada-8b-instruct -o jsonpath='{.status.url}'
+# Basic usage
+vdiff --model GSAI-ML/LLaDA-8B-Instruct --trust-remote-code
 
-# Or get the OpenShift route
-oc get route
+# With production options
+vdiff \
+    --model GSAI-ML/LLaDA-8B-Instruct \
+    --port 8000 \
+    --max-concurrent-requests 8 \
+    --rate-limit-requests 100 \
+    --request-timeout 300 \
+    --trust-remote-code
+
+# With API key authentication
+VDIFF_API_KEY=your-secret-key vdiff --model gpt2 --port 8000
 ```
 
-## Using the API
-
-### With OpenAI Python SDK
+### API Usage
 
 ```python
 from openai import OpenAI
 
-# Get route from: oc get route llada-8b-instruct -o jsonpath='{.spec.host}'
 client = OpenAI(
-    base_url="https://llada-8b-instruct-myproject.apps.cluster.example.com/v1",
-    api_key="not-needed"  # Or use token if auth enabled
+    base_url="http://localhost:8000/v1",
+    api_key="your-api-key"  # Or "not-needed" if auth disabled
 )
 
 response = client.chat.completions.create(
     model="llada-8b-instruct",
-    messages=[
-        {"role": "user", "content": "Hello! How are you?"}
-    ],
+    messages=[{"role": "user", "content": "Hello! How are you?"}],
     max_tokens=100
 )
 print(response.choices[0].message.content)
 ```
 
-### With curl
+## 📚 API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Detailed health status |
+| `/health/live` | GET | Kubernetes liveness probe |
+| `/health/ready` | GET | Kubernetes readiness probe |
+| `/v1/models` | GET | List available models |
+| `/v1/completions` | POST | Text completion |
+| `/v1/chat/completions` | POST | Chat completion |
+| `/metrics` | GET | Prometheus metrics |
+| `/v1/engine/stats` | GET | Engine statistics |
+| `/docs` | GET | Interactive API documentation |
+
+## ⚙️ Configuration
+
+### CLI Arguments
 
 ```bash
-ROUTE=$(oc get route llada-8b-instruct -o jsonpath='{.spec.host}')
-
-# Health check
-curl https://${ROUTE}/health
-
-# Chat completion
-curl https://${ROUTE}/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "llada-8b-instruct",
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "max_tokens": 100
-  }'
+vdiff \
+    # Model Options
+    --model MODEL                    # Model name or path (required)
+    --tokenizer TOKENIZER           # Tokenizer (defaults to model)
+    --dtype auto|float16|bfloat16   # Data type for weights
+    --trust-remote-code             # Trust HuggingFace remote code
+    
+    # Server Options
+    --host 0.0.0.0                  # Bind host
+    --port 8000                     # Bind port
+    --api-key SECRET                # API key for authentication
+    
+    # Diffusion Options
+    --diffusion-steps 64            # Number of diffusion steps
+    --block-size 32                 # Block size for generation
+    
+    # APD Options
+    --enable-apd                    # Enable APD (default)
+    --disable-apd                   # Use standard diffusion
+    --apd-max-parallel 8            # Max parallel tokens
+    --apd-threshold 0.3             # Acceptance threshold
+    
+    # Production Options
+    --max-concurrent-requests 4     # Max concurrent generations
+    --max-queue-size 256            # Max pending requests
+    --request-timeout 300           # Request timeout (seconds)
+    --rate-limit-requests 100       # Max requests per minute
+    
+    # Performance Optimization
+    --compile                       # Use torch.compile (default)
+    --no-compile                    # Disable torch.compile
+    --compile-mode MODE             # reduce-overhead|max-autotune
+    --flash-attention               # Use Flash Attention 2 (default)
+    --no-flash-attention            # Disable Flash Attention
+    --quantization 8bit|4bit        # Enable quantization
 ```
 
-## CLI Usage (Local Development)
+### Environment Variables
 
 ```bash
-# Install
-pip install -r requirements.txt && pip install -e .
-
-# Run server with APD (default, faster inference)
-python -m vdiff.entrypoints.openai.api_server \
-    --model GSAI-ML/LLaDA-8B-Instruct \
-    --port 8000 \
-    --trust-remote-code
-
-# Run without APD (standard diffusion)
-python -m vdiff.entrypoints.openai.api_server \
-    --model GSAI-ML/LLaDA-8B-Instruct \
-    --port 8000 \
-    --disable-apd \
-    --trust-remote-code
-
-# With custom APD settings
-python -m vdiff.entrypoints.openai.api_server \
-    --model GSAI-ML/LLaDA-8B-Instruct \
-    --port 8000 \
-    --apd-max-parallel 16 \
-    --apd-threshold 0.2 \
-    --trust-remote-code
+VDIFF_MODEL=GSAI-ML/LLaDA-8B-Instruct
+VDIFF_PORT=8000
+VDIFF_API_KEY=your-secret-key
+VDIFF_DIFFUSION_STEPS=64
+VDIFF_ENABLE_APD=true
+VDIFF_APD_MAX_PARALLEL=8
+VDIFF_MAX_CONCURRENT=4
+VDIFF_RATE_LIMIT_REQUESTS=100
+VDIFF_REQUEST_TIMEOUT=300
 ```
 
-## Diffusion Generation Algorithm
+## 🐳 Docker Deployment
 
-vdiff implements the **actual LLaDA generation algorithm** from [ML-GSAI/LLaDA](https://github.com/ML-GSAI/LLaDA):
+### Build Images
+
+```bash
+# GPU image (default, with CUDA)
+docker build -t vdiff .
+
+# CPU-only image
+docker build --build-arg USE_CUDA=0 -t vdiff:cpu .
+
+# Specific CUDA version
+docker build --build-arg CUDA_VERSION=12.1.0 -t vdiff:cuda12.1 .
+```
+
+### Run Container
+
+```bash
+# GPU (recommended for production)
+docker run --gpus all -p 8000:8000 \
+    -v ~/.cache/huggingface:/workspace/.cache/huggingface \
+    vdiff \
+    --model GSAI-ML/LLaDA-8B-Instruct --trust-remote-code
+
+# CPU-only
+docker run -p 8000:8000 \
+    -v ~/.cache/huggingface:/workspace/.cache/huggingface \
+    vdiff:cpu \
+    --model gpt2
+```
+
+### Docker Compose
+
+```bash
+# Start with GPU
+docker-compose up -d
+
+# Start CPU-only
+docker-compose --profile cpu up -d vdiff-cpu
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
+
+## ☸️ Kubernetes / RHOAI Deployment
+
+### Deploy ServingRuntime
+
+```bash
+# Create the vdiff ServingRuntime
+oc apply -f deploy/kubernetes/kserve/serving-runtime.yaml
+
+# Verify in RHOAI dashboard: Settings → Serving runtimes
+```
+
+### Deploy InferenceService
+
+```bash
+# Deploy the model
+oc apply -f deploy/kubernetes/kserve/inference-service.yaml
+
+# Get endpoint
+oc get inferenceservice llada-8b-instruct -o jsonpath='{.status.url}'
+```
+
+### Example InferenceService
+
+```yaml
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: llada-8b-instruct
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: vdiff
+      runtime: vdiff-runtime
+      storageUri: pvc://model-storage/llada-8b
+      resources:
+        requests:
+          nvidia.com/gpu: "1"
+          memory: "32Gi"
+```
+
+## 📊 Prometheus Metrics
+
+```
+# Request metrics
+vdiff_request_success_total
+vdiff_request_failure_total
+vdiff_request_latency_seconds
+
+# Token metrics
+vdiff_prompt_tokens_total
+vdiff_generation_tokens_total
+vdiff_parallel_tokens_decoded_total
+
+# Engine metrics
+vdiff_queue_size
+vdiff_active_requests
+vdiff_gpu_memory_used_bytes
+```
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart TB
+    subgraph Client["Clients"]
+        SDK["OpenAI SDK"]
+        CURL["curl / HTTP"]
+    end
+
+    subgraph Server["vdiff API Server"]
+        MW["Middleware<br/>Rate Limit · Auth · Logging"]
+        API["/v1/chat/completions<br/>/v1/completions"]
+    end
+
+    subgraph Engine["VDiffEngine"]
+        Q["Request Queue"]
+        GEN["Generation<br/>Diffusion · APD"]
+        MEM["Memory Manager"]
+    end
+
+    subgraph Backend["Model Backend"]
+        HF["HuggingFace Model"]
+        GPU["GPU / CPU"]
+    end
+
+    Client --> Server
+    MW --> API
+    API --> Q
+    Q --> GEN
+    GEN --> HF
+    HF --> GPU
+    MEM --> GPU
+
+    style Server fill:#e3f2fd
+    style Engine fill:#f3e5f5
+    style Backend fill:#e8f5e9
+```
+
+### Diffusion Generation
 
 ```mermaid
 flowchart LR
@@ -143,300 +300,130 @@ flowchart LR
         A["Prompt + [MASK] × N"]
     end
     
-    subgraph Loop["For each step"]
-        B["Forward pass → logits"]
-        C["Compute confidence"]
-        D["Select top-k confident"]
-        E["Unmask selected tokens"]
+    subgraph Loop["Diffusion Loop"]
+        B["Forward Pass"]
+        C["Compute Confidence"]
+        D["Unmask Top-K"]
     end
     
     subgraph Done["Complete"]
-        F["Fully decoded text"]
+        E["Generated Text"]
     end
     
     Init --> Loop
-    Loop -->|"Repeat"| Loop
-    Loop -->|"All unmasked"| Done
+    Loop -->|Iterate| Loop
+    Loop -->|All Unmasked| Done
 ```
 
-### Key Features
-
-| Feature | Description |
-|---------|-------------|
-| **Masked Diffusion** | Start with `[MASK]` tokens, iteratively unmask |
-| **Confidence Remasking** | Unmask high-confidence tokens first |
-| **Semi-Autoregressive** | Block-by-block generation for efficiency |
-| **Gumbel Sampling** | Proper categorical sampling with noise |
-
-### Parameters
+## 📈 Benchmarking
 
 ```bash
-python -m vdiff.entrypoints.openai.api_server \
-    --model GSAI-ML/LLaDA-8B-Instruct \
-    --diffusion-steps 64 \       # Number of diffusion steps
-    --block-size 32 \            # Block size for semi-AR generation
-    --enable-apd \               # Enable APD (default)
-    --apd-max-parallel 8 \       # Max tokens per APD step
-    --apd-threshold 0.3          # Acceptance threshold
+# Start server
+vdiff --model gpt2 --port 8000
+
+# Run benchmark
+python benchmarks/run_benchmark.py \
+    --url http://localhost:8000 \
+    --requests 100 \
+    --concurrency 10 \
+    --max-tokens 64
+
+# Save results to file
+python benchmarks/run_benchmark.py \
+    --url http://localhost:8000 \
+    --output results.json
 ```
 
-### APD (Adaptive Parallel Decoding)
-
-APD accelerates diffusion LLM inference by:
-1. Generating multiple candidate tokens in parallel
-2. Adaptively accepting high-confidence tokens
-3. Providing 2-4x throughput improvement
-
-Reference: [APD Paper](https://arxiv.org/abs/2506.00413)
-
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check (RHOAI readiness probe) |
-| `/v1/models` | GET | List available models |
-| `/v1/completions` | POST | Text completion |
-| `/v1/chat/completions` | POST | Chat completion |
-| `/metrics` | GET | Prometheus metrics |
-
-## Prometheus Metrics
-
-Metrics are exposed at `/metrics` and compatible with OpenShift monitoring:
-
+Example output:
 ```
-vdiff_request_success_total
-vdiff_request_latency_seconds
-vdiff_prompt_tokens_total
-vdiff_generation_tokens_total
-vdiff_parallel_tokens_decoded_total  # vdiff specific
-vdiff_kv_cache_hit_rate              # vdiff specific
+============================================================
+BENCHMARK RESULTS
+============================================================
+Requests/sec:       12.45
+Tokens/sec:         798.32
+
+Latency (ms)
+  P50:                156.23
+  P95:                312.45
+  P99:                456.78
+============================================================
 ```
 
-## vLLM Compatibility
-
-vdiff is designed as a drop-in replacement for vLLM when serving diffusion models:
-
-| vLLM | vdiff | Notes |
-|------|-------|-------|
-| `vllm-runtime` | `vdiff-runtime` | Different ServingRuntime |
-| LLaMA, Mistral | LLaDA, Dream | Different model types |
-| Same API | Same API | 100% compatible |
-| Same CLI args | Same CLI args | Plus vdiff extensions |
-
-## Building the Container Image
-
-```bash
-# Build for OpenShift
-podman build -t quay.io/rhoai/vdiff:latest -f deploy/docker/Dockerfile .
-
-# Push to registry
-podman push quay.io/rhoai/vdiff:latest
-```
-
-## Development
+## 🧪 Development
 
 ```bash
 # Install dev dependencies
-make dev
+pip install -e ".[dev]"
 
 # Run tests
-make test
+pytest tests/ -v
 
-# Lint
-make lint
+# Run linting
+ruff check vdiff/
+black --check vdiff/
+
+# Type checking
+mypy vdiff/
+
+# Run all checks
+make check
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 vdiff/
 ├── vdiff/                   # Main package
-│   ├── entrypoints/         # API server (OpenAI-compatible)
-│   ├── engine/              # Inference engine + APD
-│   │   ├── apd.py           # Adaptive Parallel Decoding
-│   │   ├── diffusion_sampler.py  # LLaDA generation
-│   │   └── vdiff_engine.py  # Core engine
-│   └── metrics/             # Prometheus metrics
+│   ├── config.py           # Configuration classes
+│   ├── version.py          # Version info
+│   ├── engine/             # Inference engine
+│   │   ├── vdiff_engine.py # Production engine
+│   │   ├── apd.py          # Adaptive Parallel Decoding
+│   │   ├── diffusion_sampler.py  # Diffusion generation
+│   │   └── sampling_params.py
+│   ├── entrypoints/        # API server
+│   │   └── openai/         # OpenAI-compatible endpoints
+│   └── metrics/            # Prometheus metrics
 ├── deploy/
-│   ├── docker/              # Container images
-│   └── kubernetes/
-│       └── kserve/          # RHOAI manifests
-├── tests/                   # Test suite
-├── examples/                # Client examples
-└── docs/                    # Documentation
+│   └── kubernetes/         # K8s manifests
+│       └── kserve/         # RHOAI manifests
+├── tests/                  # Test suite
+├── examples/               # Usage examples
+├── Dockerfile             # Multi-stage Dockerfile
+└── pyproject.toml         # Project config
 ```
 
-## License
+## 🤝 Compatibility
+
+| Feature | vLLM | vdiff |
+|---------|------|-------|
+| API Format | OpenAI-compatible | OpenAI-compatible |
+| Models | Autoregressive (LLaMA, Mistral) | Diffusion (LLaDA, Dream) |
+| CLI Style | `--model`, `--port` | Same + diffusion options |
+| Metrics | Prometheus | Prometheus |
+| Health Check | `/health` | `/health`, `/health/live`, `/health/ready` |
+
+## 🔄 Comparison with Competitors
+
+| Framework | Best For | Diffusion Support |
+|-----------|----------|-------------------|
+| **vdiff** | Diffusion LLMs (LLaDA, Dream) | ✅ Yes |
+| vLLM | High-throughput autoregressive | ❌ No |
+| TGI | HuggingFace ecosystem | ❌ No |
+| TensorRT-LLM | NVIDIA optimization | ❌ No |
+| Ollama | Local development | ❌ No |
+| llama.cpp | CPU/Edge deployment | ❌ No |
+
+**vdiff is the only production-ready framework for Diffusion LLMs.**
+
+See [docs/COMPARISON.md](docs/COMPARISON.md) for detailed comparison.
+
+## 📜 License
 
 Apache License 2.0 - See [LICENSE](LICENSE) for details.
 
-## Architecture
-
-vdiff is a **standalone serving framework** for diffusion language models. It provides vLLM-compatible APIs for serving LLaDA, Dream, and other diffusion LLMs on enterprise platforms.
-
-### Why vdiff? (vLLM vs vdiff)
-
-```mermaid
-flowchart TB
-    subgraph Models["Model Types"]
-        AR["🔤 Autoregressive LLMs<br/>LLaMA, Mistral, GPT"]
-        DM["🎲 Diffusion LLMs<br/>LLaDA, Dream"]
-    end
-
-    subgraph Servers["Serving Frameworks"]
-        VLLM["⚡ vLLM<br/>PagedAttention<br/>Sequential Generation"]
-        VDIFF["🌀 vdiff<br/>Diffusion Inference<br/>Parallel Unmasking"]
-    end
-
-    AR --> VLLM
-    DM --> VDIFF
-
-    subgraph API["Same OpenAI-Compatible API"]
-        EP1["/v1/chat/completions"]
-        EP2["/v1/completions"]
-        EP3["/v1/models"]
-    end
-
-    VLLM --> API
-    VDIFF --> API
-
-    style AR fill:#e1f5fe
-    style DM fill:#f3e5f5
-    style VLLM fill:#e8f5e9
-    style VDIFF fill:#fff3e0
-```
-
-### Infrastructure Integration
-
-```mermaid
-flowchart TD
-    subgraph Client["Client Applications"]
-        SDK["OpenAI SDK"]
-        CURL["curl / HTTP"]
-        APP["Your Application"]
-    end
-
-    subgraph Platform["RHOAI / OpenShift"]
-        subgraph KServe["KServe"]
-            IS1["InferenceService<br/>llama-3-70b"]
-            IS2["InferenceService<br/>llada-8b"]
-            IS3["InferenceService<br/>mistral-7b"]
-        end
-
-        subgraph Runtimes["Serving Runtimes"]
-            VR["vllm-runtime"]
-            DR["vdiff-runtime"]
-        end
-
-        IS1 --> VR
-        IS2 --> DR
-        IS3 --> VR
-    end
-
-    subgraph Backends["Model Backends"]
-        V1["vLLM Server<br/>LLaMA-3"]
-        D1["vdiff Server<br/>LLaDA-8B"]
-        V2["vLLM Server<br/>Mistral-7B"]
-    end
-
-    Client --> KServe
-    VR --> V1
-    DR --> D1
-    VR --> V2
-
-    style IS2 fill:#fff3e0
-    style DR fill:#fff3e0
-    style D1 fill:#fff3e0
-```
-
-### Generation: Autoregressive vs Diffusion
-
-```mermaid
-flowchart LR
-    subgraph AR["Autoregressive (vLLM)"]
-        direction LR
-        A1["The"] --> A2["The cat"] --> A3["The cat sat"] --> A4["The cat sat on"]
-    end
-
-    subgraph DF["Diffusion (vdiff)"]
-        direction LR
-        D1["[M] [M] [M] [M]"] --> D2["The [M] sat [M]"] --> D3["The cat sat on"]
-    end
-
-    style AR fill:#e8f5e9
-    style DF fill:#fff3e0
-```
-
-### Request Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant R as Route/Ingress
-    participant K as KServe
-    participant D as vdiff Server
-    participant M as LLaDA Model
-
-    C->>R: POST /v1/chat/completions
-    R->>K: Route to InferenceService
-    K->>D: Forward request
-    D->>D: Tokenize input
-    D->>M: Generate (diffusion steps)
-    M-->>D: Output tokens
-    D->>D: Decode & format response
-    D-->>K: OpenAI-format response
-    K-->>R: Response
-    R-->>C: JSON response
-```
-
-### Component Architecture
-
-```mermaid
-flowchart TB
-    subgraph Server["vdiff API Server (FastAPI)"]
-        EP["/v1/chat/completions<br/>/v1/completions<br/>/health, /metrics"]
-    end
-
-    subgraph Engine["VDiffEngine"]
-        TOK["TokenizerWrapper"]
-        GEN["Generation Logic"]
-        CFG["VDiffConfig"]
-    end
-
-    subgraph Model["HuggingFace Model"]
-        HF["AutoModelForCausalLM"]
-        TF["Transformers"]
-    end
-
-    subgraph Metrics["Prometheus Metrics"]
-        PM["vdiff_request_*<br/>vdiff_tokens_*"]
-    end
-
-    EP --> Engine
-    Engine --> Model
-    Engine --> Metrics
-    TOK --> TF
-
-    style Server fill:#e3f2fd
-    style Engine fill:#f3e5f5
-    style Model fill:#e8f5e9
-```
-
-Key components:
-- **VDiffEngine**: Core inference engine with HuggingFace model loading
-- **OpenAI-compatible API**: Drop-in replacement for vLLM endpoints
-- **Prometheus Metrics**: Compatible with OpenShift monitoring
-
-## Supported Models
-
-| Model | Type | Example |
-|-------|------|---------|
-| LLaDA | Diffusion LLM | `GSAI-ML/LLaDA-8B-Instruct`, `GSAI-ML/LLaDA-8B-Base` |
-| Dream | Diffusion LLM | `dream-org/dream-v1` |
-| Any HF model | Autoregressive | Compatible with standard HuggingFace models |
-
-## Acknowledgments
+## 🙏 Acknowledgments
 
 - [vLLM](https://github.com/vllm-project/vllm) for API design patterns
-- [Red Hat OpenShift AI](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai) for the serving platform
-- [LLaDA](https://huggingface.co/GSAI-ML/LLaDA-8B-Instruct) and Dream for diffusion LLM models
+- [LLaDA](https://github.com/ML-GSAI/LLaDA) for diffusion LLM algorithm
+- [Red Hat OpenShift AI](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai) for enterprise serving platform

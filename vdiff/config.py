@@ -1,10 +1,10 @@
 """Configuration classes for vdiff.
 
-Matches vLLM configuration patterns while adding diffusion-specific options.
+Production-ready configuration matching vLLM patterns with diffusion-specific options.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import os
 
 
@@ -12,7 +12,25 @@ import os
 class VDiffConfig:
     """Main configuration for the vdiff engine.
     
-    Attributes match vLLM's configuration with additional diffusion-specific options.
+    Comprehensive configuration matching vLLM's patterns with additional:
+    - Diffusion-specific options (steps, block size)
+    - APD (Adaptive Parallel Decoding) options
+    - Production options (rate limiting, timeouts, queue management)
+    
+    Attributes:
+        model: Name or path of the model to serve
+        tokenizer: Name or path of the tokenizer (defaults to model)
+        revision: Model revision to use
+        max_model_len: Maximum model context length
+        dtype: Data type for model weights (auto, float16, bfloat16, float32)
+        trust_remote_code: Trust remote code from HuggingFace
+        host: Host to bind the server to
+        port: Port to bind the server to
+        diffusion_steps: Number of diffusion steps for generation
+        block_size: Block size for semi-autoregressive generation
+        enable_apd: Enable APD for faster inference
+        apd_max_parallel: Maximum tokens to decode in parallel
+        apd_threshold: Acceptance threshold for parallel tokens
     """
     
     # Model configuration (matches vLLM)
@@ -57,6 +75,21 @@ class VDiffConfig:
     apd_threshold: float = 0.3
     apd_use_ar_verification: bool = False
     
+    # Production settings
+    max_concurrent_requests: int = 4
+    max_queue_size: int = 256
+    request_timeout: float = 300.0
+    rate_limit_requests: int = 100
+    rate_limit_window: int = 60
+    workers: int = 1
+    
+    # Performance optimizations
+    compile_model: bool = True  # Use torch.compile (PyTorch 2.0+)
+    compile_mode: str = "reduce-overhead"  # torch.compile mode
+    use_flash_attention: bool = True  # Use Flash Attention 2 if available
+    use_8bit: bool = False  # 8-bit quantization (bitsandbytes)
+    use_4bit: bool = False  # 4-bit quantization (bitsandbytes)
+    
     def __post_init__(self):
         """Validate and set default values."""
         if self.tokenizer is None:
@@ -75,10 +108,28 @@ class VDiffConfig:
         
         if not 0.0 <= self.apd_threshold <= 1.0:
             raise ValueError(f"apd_threshold must be in [0, 1], got {self.apd_threshold}")
+        
+        if self.max_concurrent_requests < 1:
+            raise ValueError(
+                f"max_concurrent_requests must be >= 1, got {self.max_concurrent_requests}"
+            )
+        
+        if self.max_queue_size < 1:
+            raise ValueError(f"max_queue_size must be >= 1, got {self.max_queue_size}")
+        
+        if self.request_timeout <= 0:
+            raise ValueError(f"request_timeout must be > 0, got {self.request_timeout}")
     
     @classmethod
     def from_env(cls) -> "VDiffConfig":
-        """Create configuration from environment variables."""
+        """Create configuration from environment variables.
+        
+        Environment variables use VDIFF_ prefix for consistency.
+        Falls back to common environment variables for compatibility.
+        
+        Returns:
+            VDiffConfig instance populated from environment.
+        """
         return cls(
             model=os.getenv("VDIFF_MODEL", os.getenv("MODEL_NAME", "")),
             tokenizer=os.getenv("VDIFF_TOKENIZER"),
@@ -88,6 +139,7 @@ class VDiffConfig:
             trust_remote_code=os.getenv("VDIFF_TRUST_REMOTE_CODE", "").lower() == "true",
             host=os.getenv("VDIFF_HOST", "0.0.0.0"),
             port=int(os.getenv("VDIFF_PORT", os.getenv("PORT", "8000"))),
+            api_key=os.getenv("VDIFF_API_KEY"),
             tensor_parallel_size=int(os.getenv("VDIFF_TENSOR_PARALLEL_SIZE", "1")),
             gpu_memory_utilization=float(os.getenv("VDIFF_GPU_MEMORY_UTILIZATION", "0.9")),
             max_num_seqs=int(os.getenv("VDIFF_MAX_NUM_SEQS", "256")),
@@ -97,10 +149,25 @@ class VDiffConfig:
             enable_apd=os.getenv("VDIFF_ENABLE_APD", "true").lower() == "true",
             apd_max_parallel=int(os.getenv("VDIFF_APD_MAX_PARALLEL", "8")),
             apd_threshold=float(os.getenv("VDIFF_APD_THRESHOLD", "0.3")),
+            max_concurrent_requests=int(os.getenv("VDIFF_MAX_CONCURRENT", "4")),
+            max_queue_size=int(os.getenv("VDIFF_MAX_QUEUE_SIZE", "256")),
+            request_timeout=float(os.getenv("VDIFF_REQUEST_TIMEOUT", "300")),
+            rate_limit_requests=int(os.getenv("VDIFF_RATE_LIMIT_REQUESTS", "100")),
+            rate_limit_window=int(os.getenv("VDIFF_RATE_LIMIT_WINDOW", "60")),
+            workers=int(os.getenv("VDIFF_WORKERS", "1")),
+            compile_model=os.getenv("VDIFF_COMPILE", "true").lower() == "true",
+            compile_mode=os.getenv("VDIFF_COMPILE_MODE", "reduce-overhead"),
+            use_flash_attention=os.getenv("VDIFF_FLASH_ATTENTION", "true").lower() == "true",
+            use_8bit=os.getenv("VDIFF_USE_8BIT", "false").lower() == "true",
+            use_4bit=os.getenv("VDIFF_USE_4BIT", "false").lower() == "true",
         )
     
-    def to_dict(self) -> dict:
-        """Convert configuration to dictionary."""
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert configuration to dictionary.
+        
+        Returns:
+            Dictionary representation of configuration.
+        """
         return {
             "model": self.model,
             "tokenizer": self.tokenizer,
@@ -120,12 +187,48 @@ class VDiffConfig:
             "enable_apd": self.enable_apd,
             "apd_max_parallel": self.apd_max_parallel,
             "apd_threshold": self.apd_threshold,
+            "max_concurrent_requests": self.max_concurrent_requests,
+            "max_queue_size": self.max_queue_size,
+            "request_timeout": self.request_timeout,
+            "rate_limit_requests": self.rate_limit_requests,
+            "rate_limit_window": self.rate_limit_window,
         }
+    
+    def validate(self) -> List[str]:
+        """Validate configuration and return list of errors.
+        
+        Returns:
+            List of validation error messages (empty if valid).
+        """
+        errors = []
+        
+        if not self.model:
+            errors.append("model is required")
+        
+        if self.diffusion_steps < 1:
+            errors.append("diffusion_steps must be >= 1")
+        
+        if self.block_size < 1:
+            errors.append("block_size must be >= 1")
+        
+        if self.dtype not in ("auto", "float16", "bfloat16", "float32"):
+            errors.append(f"dtype must be one of: auto, float16, bfloat16, float32")
+        
+        return errors
 
 
 @dataclass
 class ModelConfig:
-    """Model-specific configuration loaded from the model."""
+    """Model-specific configuration loaded from the model.
+    
+    Attributes:
+        model_type: Type of model (e.g., llama, gpt2, diffusion-llm)
+        hidden_size: Hidden dimension size
+        num_attention_heads: Number of attention heads
+        num_hidden_layers: Number of transformer layers
+        vocab_size: Vocabulary size
+        max_position_embeddings: Maximum sequence length
+    """
     
     model_type: str = "diffusion-llm"
     hidden_size: int = 4096
@@ -136,7 +239,14 @@ class ModelConfig:
     
     @classmethod
     def from_pretrained(cls, model_path: str) -> "ModelConfig":
-        """Load configuration from a pretrained model."""
+        """Load configuration from a pretrained model.
+        
+        Args:
+            model_path: Path or name of the pretrained model.
+            
+        Returns:
+            ModelConfig instance with model parameters.
+        """
         try:
             from transformers import AutoConfig
             hf_config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
@@ -150,3 +260,18 @@ class ModelConfig:
             )
         except Exception:
             return cls()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary.
+        
+        Returns:
+            Dictionary representation of model config.
+        """
+        return {
+            "model_type": self.model_type,
+            "hidden_size": self.hidden_size,
+            "num_attention_heads": self.num_attention_heads,
+            "num_hidden_layers": self.num_hidden_layers,
+            "vocab_size": self.vocab_size,
+            "max_position_embeddings": self.max_position_embeddings,
+        }

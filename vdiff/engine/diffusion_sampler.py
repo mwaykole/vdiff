@@ -7,10 +7,17 @@ Key concepts:
 - Masked Diffusion: Start with [MASK] tokens, iteratively unmask
 - Confidence-based remasking: Unmask high-confidence tokens first
 - Semi-autoregressive: Block-by-block generation for efficiency
+
+Optimizations:
+- Vectorized top-k selection (no Python loops over batch)
+- Memory-efficient tensor reuse
+- Optional float32 Gumbel noise for speed
+- Early stopping when fully unmasked
+- torch.compile support
 """
 
 from typing import Optional, Tuple, Literal
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,7 +25,6 @@ logger = logging.getLogger(__name__)
 try:
     import torch
     import torch.nn.functional as F
-    import numpy as np
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -35,17 +41,26 @@ class DiffusionSamplerConfig:
     cfg_scale: float = 0.0
     remasking: Literal["low_confidence", "random"] = "low_confidence"
     mask_id: int = 126336  # LLaDA's mask token ID
+    # Optimization options
+    use_float32_gumbel: bool = False  # Use float32 for speed (slight quality tradeoff)
+    enable_early_stopping: bool = True  # Stop when all tokens unmasked
 
 
-def add_gumbel_noise(logits: "torch.Tensor", temperature: float) -> "torch.Tensor":
+@torch.no_grad()
+def add_gumbel_noise(
+    logits: "torch.Tensor",
+    temperature: float,
+    use_float32: bool = False
+) -> "torch.Tensor":
     """Apply Gumbel noise for sampling categorical distributions.
     
     According to arXiv:2409.02908, for MDM, low-precision Gumbel Max improves 
-    perplexity score but reduces generation quality. Thus, we use float64.
+    perplexity score but reduces generation quality. Thus, we use float64 by default.
     
     Args:
         logits: Model output logits.
         temperature: Sampling temperature (0 = greedy).
+        use_float32: Use float32 for speed (slight quality tradeoff).
     
     Returns:
         Logits with Gumbel noise applied.
@@ -53,17 +68,22 @@ def add_gumbel_noise(logits: "torch.Tensor", temperature: float) -> "torch.Tenso
     if temperature == 0:
         return logits
     
-    logits = logits.to(torch.float64)
-    noise = torch.rand_like(logits, dtype=torch.float64)
+    # Use float32 for speed if requested, otherwise float64 for quality
+    dtype = torch.float32 if use_float32 else torch.float64
+    logits = logits.to(dtype)
+    
+    # Clamp noise to avoid log(0)
+    noise = torch.rand_like(logits, dtype=dtype).clamp_(min=1e-10)
     gumbel_noise = (-torch.log(noise)) ** temperature
     return logits.exp() / gumbel_noise
 
 
+@torch.no_grad()
 def get_num_transfer_tokens(
     mask_index: "torch.Tensor",
     steps: int
 ) -> "torch.Tensor":
-    """Compute number of tokens to unmask at each step.
+    """Compute number of tokens to unmask at each step (vectorized).
     
     LLaDA uses a linear noise schedule, so the expected number of tokens
     transitioned at each step should be consistent.
@@ -75,21 +95,62 @@ def get_num_transfer_tokens(
     Returns:
         Tensor of shape (batch_size, steps) with token counts per step.
     """
-    mask_num = mask_index.sum(dim=1, keepdim=True)
+    mask_num = mask_index.sum(dim=1, keepdim=True)  # (batch_size, 1)
     
     base = mask_num // steps
     remainder = mask_num % steps
     
-    num_transfer_tokens = torch.zeros(
-        mask_num.size(0), steps, 
-        device=mask_index.device, 
-        dtype=torch.int64
-    ) + base
-    
-    for i in range(mask_num.size(0)):
-        num_transfer_tokens[i, :remainder[i]] += 1
+    # Vectorized: create step indices and compare with remainder
+    step_indices = torch.arange(steps, device=mask_index.device).unsqueeze(0)  # (1, steps)
+    num_transfer_tokens = base + (step_indices < remainder).long()
     
     return num_transfer_tokens
+
+
+@torch.no_grad()
+def _vectorized_topk_unmask(
+    confidence: "torch.Tensor",
+    num_tokens: "torch.Tensor",
+    step: int,
+) -> "torch.Tensor":
+    """Vectorized top-k selection across batch (no Python loops).
+    
+    Args:
+        confidence: Confidence scores (batch_size, seq_len).
+        num_tokens: Tokens to unmask per batch item (batch_size, steps).
+        step: Current step index.
+    
+    Returns:
+        Boolean mask of positions to unmask.
+    """
+    batch_size, seq_len = confidence.shape
+    device = confidence.device
+    
+    # Get max k across batch for uniform topk
+    k_per_batch = num_tokens[:, step]  # (batch_size,)
+    max_k = k_per_batch.max().item()
+    
+    if max_k == 0:
+        return torch.zeros_like(confidence, dtype=torch.bool)
+    
+    # Get top-max_k indices for all batches
+    _, top_indices = torch.topk(confidence, k=min(max_k, seq_len), dim=-1)  # (batch_size, max_k)
+    
+    # Create mask: only keep indices where position < k_per_batch[b]
+    position_indices = torch.arange(max_k, device=device).unsqueeze(0)  # (1, max_k)
+    valid_mask = position_indices < k_per_batch.unsqueeze(1)  # (batch_size, max_k)
+    
+    # Scatter to create transfer mask
+    transfer_index = torch.zeros(batch_size, seq_len, dtype=torch.bool, device=device)
+    
+    # Only set True for valid indices
+    batch_indices = torch.arange(batch_size, device=device).unsqueeze(1).expand_as(top_indices)
+    valid_batch_indices = batch_indices[valid_mask]
+    valid_top_indices = top_indices[valid_mask]
+    
+    transfer_index[valid_batch_indices, valid_top_indices] = True
+    
+    return transfer_index
 
 
 @torch.no_grad()
@@ -104,13 +165,21 @@ def diffusion_generate(
     cfg_scale: float = 0.0,
     remasking: str = "low_confidence",
     mask_id: int = 126336,
+    use_float32_gumbel: bool = False,
+    enable_early_stopping: bool = True,
 ) -> "torch.Tensor":
-    """Generate text using masked diffusion.
+    """Generate text using masked diffusion (optimized).
     
     This implements the LLaDA generation algorithm which:
     1. Starts with all [MASK] tokens in the response
     2. Iteratively predicts and unmasks tokens based on confidence
     3. Supports block-based semi-autoregressive generation
+    
+    Optimizations:
+    - Vectorized top-k selection (no Python batch loops)
+    - Early stopping when all tokens are unmasked
+    - Optional float32 Gumbel noise for speed
+    - Pre-allocated tensors where possible
     
     Args:
         model: The diffusion LLM (must have .forward() returning logits).
@@ -123,6 +192,8 @@ def diffusion_generate(
         cfg_scale: Classifier-free guidance scale (0 = disabled).
         remasking: Strategy - "low_confidence" or "random".
         mask_id: Token ID for [MASK] token.
+        use_float32_gumbel: Use float32 Gumbel noise for speed.
+        enable_early_stopping: Stop early when all tokens unmasked.
     
     Returns:
         Generated token IDs of shape (batch_size, prompt_length + gen_length).
@@ -133,15 +204,16 @@ def diffusion_generate(
     device = next(model.parameters()).device
     batch_size = prompt.shape[0]
     prompt_length = prompt.shape[1]
+    total_length = prompt_length + gen_length
     
     # Initialize with masked tokens for response
     x = torch.full(
-        (batch_size, prompt_length + gen_length),
+        (batch_size, total_length),
         mask_id,
         dtype=torch.long,
         device=device
     )
-    x[:, :prompt_length] = prompt.clone()
+    x[:, :prompt_length] = prompt
     
     # Extend attention mask if provided
     if attention_mask is not None:
@@ -150,46 +222,60 @@ def diffusion_generate(
             torch.ones((batch_size, gen_length), dtype=attention_mask.dtype, device=device)
         ], dim=-1)
     
-    prompt_index = (x != mask_id)
+    # Pre-compute prompt index for CFG (immutable after init)
+    prompt_index = torch.zeros(batch_size, total_length, dtype=torch.bool, device=device)
+    prompt_index[:, :prompt_length] = True
     
-    # Semi-autoregressive: process in blocks
+    # Validate block structure
     assert gen_length % block_length == 0, "gen_length must be divisible by block_length"
     num_blocks = gen_length // block_length
     
     assert steps % num_blocks == 0, "steps must be divisible by num_blocks"
     steps_per_block = steps // num_blocks
     
+    # Pre-allocate CFG tensors if needed
+    if cfg_scale > 0.0:
+        x_cfg = torch.empty((batch_size * 2, total_length), dtype=torch.long, device=device)
+        if attention_mask is not None:
+            attention_mask_cfg = attention_mask.repeat(2, 1)
+        else:
+            attention_mask_cfg = None
+    
+    # Pre-allocate confidence tensor for reuse
+    neg_inf = torch.tensor(float('-inf'), device=device)
+    
     for block_idx in range(num_blocks):
         block_start = prompt_length + block_idx * block_length
         block_end = prompt_length + (block_idx + 1) * block_length
         
+        # Compute transfer schedule for this block
         block_mask_index = (x[:, block_start:block_end] == mask_id)
         num_transfer_tokens = get_num_transfer_tokens(block_mask_index, steps_per_block)
         
         for step in range(steps_per_block):
+            # Check early stopping
             mask_index = (x == mask_id)
+            if enable_early_stopping and not mask_index.any():
+                logger.debug(f"Early stop at block {block_idx}, step {step}")
+                return x
             
-            # Classifier-free guidance
+            # Forward pass (with or without CFG)
             if cfg_scale > 0.0:
-                un_x = x.clone()
-                un_x[prompt_index] = mask_id
-                x_ = torch.cat([x, un_x], dim=0)
+                # Prepare CFG batch: [conditioned, unconditioned]
+                x_cfg[:batch_size] = x
+                x_cfg[batch_size:] = x.clone()
+                x_cfg[batch_size:][prompt_index] = mask_id
                 
-                if attention_mask is not None:
-                    attention_mask_ = torch.cat([attention_mask, attention_mask], dim=0)
-                else:
-                    attention_mask_ = None
-                
-                outputs = model(x_, attention_mask=attention_mask_)
+                outputs = model(x_cfg, attention_mask=attention_mask_cfg)
                 logits = outputs.logits if hasattr(outputs, 'logits') else outputs
-                logits, un_logits = torch.chunk(logits, 2, dim=0)
+                logits, un_logits = logits[:batch_size], logits[batch_size:]
                 logits = un_logits + (cfg_scale + 1) * (logits - un_logits)
             else:
                 outputs = model(x, attention_mask=attention_mask)
                 logits = outputs.logits if hasattr(outputs, 'logits') else outputs
             
-            # Apply Gumbel noise and sample
-            logits_with_noise = add_gumbel_noise(logits, temperature=temperature)
+            # Sample with Gumbel noise
+            logits_with_noise = add_gumbel_noise(logits, temperature, use_float32_gumbel)
             x0 = torch.argmax(logits_with_noise, dim=-1)
             
             # Compute confidence for remasking
@@ -201,22 +287,18 @@ def diffusion_generate(
             else:
                 raise ValueError(f"Unknown remasking strategy: {remasking}")
             
-            # Don't consider positions after current block
-            x0_p[:, block_end:] = float('-inf')
+            # Mask out: prompt, already unmasked, and future blocks
+            x0_p = torch.where(mask_index, x0_p, neg_inf)
+            x0_p[:, block_end:] = neg_inf
             
-            # Only update masked positions
+            # Only update masked positions with predictions
             x0 = torch.where(mask_index, x0, x)
-            confidence = torch.where(mask_index, x0_p, float('-inf'))
             
-            # Select top-k confident tokens to unmask
-            transfer_index = torch.zeros_like(x0, dtype=torch.bool, device=device)
-            for b in range(batch_size):
-                k = num_transfer_tokens[b, step].item()
-                if k > 0:
-                    _, select_index = torch.topk(confidence[b], k=k)
-                    transfer_index[b, select_index] = True
+            # Vectorized top-k selection (no Python loop!)
+            transfer_index = _vectorized_topk_unmask(x0_p, num_transfer_tokens, step)
             
-            x[transfer_index] = x0[transfer_index]
+            # Apply updates
+            x = torch.where(transfer_index, x0, x)
     
     return x
 
@@ -248,7 +330,11 @@ class DiffusionSampler:
         if hasattr(tokenizer, 'mask_token_id') and tokenizer.mask_token_id:
             self.config.mask_id = tokenizer.mask_token_id
         
-        logger.info(f"DiffusionSampler initialized with mask_id={self.config.mask_id}")
+        logger.info(
+            f"DiffusionSampler initialized: mask_id={self.config.mask_id}, "
+            f"early_stop={self.config.enable_early_stopping}, "
+            f"float32_gumbel={self.config.use_float32_gumbel}"
+        )
     
     def generate(
         self,
@@ -259,7 +345,7 @@ class DiffusionSampler:
         temperature: Optional[float] = None,
         **kwargs
     ) -> "torch.Tensor":
-        """Generate text using diffusion.
+        """Generate text using diffusion (optimized).
         
         Args:
             input_ids: Input token IDs.
@@ -277,7 +363,13 @@ class DiffusionSampler:
         # Adjust block_length if needed
         block_length = min(self.config.block_length, max_new_tokens)
         if max_new_tokens % block_length != 0:
-            block_length = max_new_tokens
+            # Find largest divisor <= block_length
+            for bl in range(block_length, 0, -1):
+                if max_new_tokens % bl == 0:
+                    block_length = bl
+                    break
+            else:
+                block_length = max_new_tokens
         
         # Adjust steps to be divisible by num_blocks
         num_blocks = max_new_tokens // block_length
@@ -295,6 +387,8 @@ class DiffusionSampler:
             cfg_scale=self.config.cfg_scale,
             remasking=self.config.remasking,
             mask_id=self.config.mask_id,
+            use_float32_gumbel=self.config.use_float32_gumbel,
+            enable_early_stopping=self.config.enable_early_stopping,
         )
     
     def decode(

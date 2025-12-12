@@ -1,0 +1,96 @@
+# vdiff Docker Compose
+# Production deployment configuration
+#
+# Usage:
+#   docker-compose up -d                    # Start with GPU
+#   docker-compose --profile cpu up -d      # Start CPU-only
+#   docker-compose logs -f                  # View logs
+#   docker-compose down                     # Stop
+
+version: "3.8"
+
+services:
+  vdiff:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USE_CUDA: "1"
+        CUDA_VERSION: "12.4.1"
+        PYTHON_VERSION: "3.11"
+    image: vdiff:latest
+    container_name: vdiff-server
+    ports:
+      - "8000:8000"
+    environment:
+      - VDIFF_MODEL=${VDIFF_MODEL:-gpt2}
+      - VDIFF_HOST=0.0.0.0
+      - VDIFF_PORT=8000
+      - VDIFF_MAX_CONCURRENT=4
+      - VDIFF_ENABLE_APD=true
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - huggingface-cache:/workspace/.cache/huggingface
+      - ./models:/workspace/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped
+    command:
+      - "--model"
+      - "${VDIFF_MODEL:-gpt2}"
+      - "--port"
+      - "8000"
+      - "--trust-remote-code"
+
+  # CPU-only variant
+  vdiff-cpu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USE_CUDA: "0"
+        PYTHON_VERSION: "3.11"
+    image: vdiff:cpu
+    container_name: vdiff-server-cpu
+    profiles:
+      - cpu
+    ports:
+      - "8000:8000"
+    environment:
+      - VDIFF_MODEL=${VDIFF_MODEL:-gpt2}
+      - VDIFF_HOST=0.0.0.0
+      - VDIFF_PORT=8000
+    volumes:
+      - huggingface-cache:/workspace/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    command:
+      - "--model"
+      - "${VDIFF_MODEL:-gpt2}"
+      - "--port"
+      - "8000"
+
+volumes:
+  huggingface-cache:
+    driver: local
+
+networks:
+  default:
+    name: vdiff-network
+

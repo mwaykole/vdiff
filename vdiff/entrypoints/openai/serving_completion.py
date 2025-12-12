@@ -52,17 +52,20 @@ class OpenAIServingCompletion:
     async def create_completion(
         self,
         request: CompletionRequest,
+        request_id: Optional[str] = None,
     ) -> Union[CompletionResponse, AsyncIterator[str]]:
         """Create a completion.
         
         Args:
             request: The completion request.
+            request_id: Optional request ID for tracking.
         
         Returns:
             CompletionResponse or async iterator for streaming.
         """
-        # Generate request ID
-        request_id = f"cmpl-{uuid.uuid4().hex[:24]}"
+        # Generate request ID if not provided
+        if request_id is None:
+            request_id = f"cmpl-{uuid.uuid4().hex[:24]}"
         self._request_counter += 1
         
         # Validate model

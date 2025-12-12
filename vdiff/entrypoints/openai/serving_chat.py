@@ -104,17 +104,20 @@ class OpenAIServingChat:
     async def create_chat_completion(
         self,
         request: ChatCompletionRequest,
+        request_id: Optional[str] = None,
     ) -> Union[ChatCompletionResponse, AsyncIterator[str]]:
         """Create a chat completion.
         
         Args:
             request: The chat completion request.
+            request_id: Optional request ID for tracking.
         
         Returns:
             ChatCompletionResponse or async iterator for streaming.
         """
-        # Generate request ID
-        request_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
+        # Generate request ID if not provided
+        if request_id is None:
+            request_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
         self._request_counter += 1
         
         # Validate model

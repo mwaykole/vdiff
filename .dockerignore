@@ -1,6 +1,7 @@
 # Git
 .git
 .gitignore
+.github
 
 # Python
 __pycache__
@@ -8,66 +9,59 @@ __pycache__
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-*.egg-info/
+*.egg-info
+.eggs
 *.egg
+dist
+build
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+.tox
+.nox
 
 # Virtual environments
+venv
 .venv
-venv/
-ENV/
+ENV
+env
 
 # IDE
-.idea/
-.vscode/
+.idea
+.vscode
 *.swp
 *.swo
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-
-# Type checking
-.mypy_cache/
-.ruff_cache/
+*~
 
 # Documentation
-docs/_build/
-site/
+docs/_build
+site
 
-# OS
-.DS_Store
-Thumbs.db
+# Testing
+tests
+.pytest_cache
 
-# CI/CD
-.github/
-
-# Development
+# Development files
 *.md
 !README.md
 Makefile
 .pre-commit-config.yaml
+.editorconfig
 
-# Models (too large for image)
-models/
-*.pt
-*.pth
+# Docker
+Dockerfile*
+docker-compose*.yml
+.docker
+
+# Local config
+.env
+.env.*
+*.local
+
+# Models (mount as volume instead)
+models
 *.bin
 *.safetensors
 *.gguf
-
-# Logs
-logs/
-*.log
-
-# Tests (not needed in production)
-tests/
-examples/
-
