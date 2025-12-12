@@ -1,0 +1,85 @@
+# llm-d InferencePool for vdiff
+# Allows llm-d scheduler to route requests to vdiff backends
+apiVersion: llm-d.ai/v1alpha1
+kind: InferencePool
+metadata:
+  name: vdiff-diffusion-pool
+  labels:
+    llm-d.ai/pool-type: diffusion
+spec:
+  # Pool description
+  description: "Pool for diffusion language models served by vdiff"
+  
+  # Backend type
+  backendType: vdiff
+  
+  # Model specifications
+  models:
+    - name: llada-8b-instruct
+      modelId: "GSAI-ML/LLaDA-8B-Instruct"
+      modelType: diffusion-llm
+      
+      # Model-specific configuration
+      config:
+        maxModelLen: 4096
+        dtype: float16
+        enableApd: true
+        apdMaxParallel: 8
+        apdThreshold: 0.3
+    
+    - name: dream-7b
+      modelId: "dream-org/dream-7b"
+      modelType: diffusion-llm
+      
+      config:
+        maxModelLen: 4096
+        dtype: float16
+        enableApd: true
+        apdMaxParallel: 8
+        apdThreshold: 0.3
+  
+  # Scaling configuration
+  scaling:
+    minReplicas: 1
+    maxReplicas: 10
+    targetConcurrency: 1
+    scaleDownDelay: 300s
+  
+  # Resource requirements per replica
+  resources:
+    requests:
+      cpu: "4"
+      memory: "16Gi"
+      nvidia.com/gpu: "1"
+    limits:
+      cpu: "8"
+      memory: "32Gi"
+      nvidia.com/gpu: "1"
+  
+  # Health check configuration
+  healthCheck:
+    path: /health
+    port: 8000
+    initialDelaySeconds: 60
+    periodSeconds: 10
+  
+  # Metrics configuration
+  metrics:
+    enabled: true
+    path: /metrics
+    port: 8000
+  
+  # Load balancing strategy
+  loadBalancing:
+    strategy: least-connections
+    # Alternative: round-robin, random, resource-based
+  
+  # Node affinity
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  
+  # Tolerations
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: "Exists"
+      effect: "NoSchedule"

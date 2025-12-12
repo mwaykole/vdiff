@@ -1,0 +1,61 @@
+# vdiff - Development Dockerfile
+# Includes development tools and hot reload
+
+FROM nvidia/cuda:12.1-devel-ubuntu22.04
+
+# Labels
+LABEL maintainer="vdiff Team"
+LABEL description="Development image for vdiff"
+LABEL version="0.1.0-dev"
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Python and development dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3.10-dev \
+    python3.10-venv \
+    python3-pip \
+    git \
+    curl \
+    vim \
+    htop \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.10 as default
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy requirements
+WORKDIR /app
+COPY requirements.txt requirements-dev.txt ./
+
+# Install all dependencies including dev
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
+
+# Copy source code
+COPY . .
+
+# Install package in editable mode
+RUN pip install --no-cache-dir -e .
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV VDIFF_HOST=0.0.0.0
+ENV VDIFF_PORT=8000
+
+# Expose port
+EXPOSE 8000
+
+# Default command with reload for development
+CMD ["uvicorn", "vdiff.entrypoints.openai.api_server:create_app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--factory"]

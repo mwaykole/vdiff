@@ -1,0 +1,140 @@
+# vdiff ServingRuntime for Red Hat OpenShift AI (RHOAI)
+# This ServingRuntime enables diffusion LLM serving in RHOAI
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  name: vdiff-runtime
+  labels:
+    # Required for RHOAI dashboard visibility
+    opendatahub.io/dashboard: "true"
+  annotations:
+    # Display name shown in RHOAI dashboard
+    openshift.io/display-name: "vdiff - Diffusion LLM ServingRuntime"
+    opendatahub.io/template-name: "vdiff-runtime"
+    opendatahub.io/template-display-name: "vdiff ServingRuntime for Diffusion LLMs"
+    opendatahub.io/accelerator-name: "nvidia-gpu"
+spec:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+  
+  # Supported model formats
+  supportedModelFormats:
+    - name: diffusion-llm
+      version: "1"
+      autoSelect: true
+    - name: llada
+      version: "1"
+      autoSelect: false
+    - name: dream
+      version: "1"
+      autoSelect: false
+    - name: pytorch
+      version: "1"
+      autoSelect: false
+  
+  # Protocol versions (vLLM compatible)
+  protocolVersions:
+    - v1
+    - v2
+    - grpc-v2
+  
+  # Single model per pod
+  multiModel: false
+  
+  # Container specification
+  containers:
+    - name: kserve-container
+      image: quay.io/rhoai/vdiff:latest
+      imagePullPolicy: IfNotPresent
+      
+      # Command
+      command:
+        - python
+        - -m
+        - vdiff.entrypoints.openai.api_server
+      
+      # Arguments - $(MODELS_DIR) is injected by KServe
+      args:
+        - "--model"
+        - "/mnt/models"
+        - "--port"
+        - "8000"
+        - "--host"
+        - "0.0.0.0"
+        - "--enable-apd"
+        - "--apd-max-parallel"
+        - "8"
+        - "--trust-remote-code"
+      
+      # Environment variables
+      env:
+        - name: HF_HOME
+          value: "/tmp/hf_home"
+        - name: TRANSFORMERS_CACHE
+          value: "/tmp/hf_home"
+        - name: HUGGINGFACE_HUB_CACHE
+          value: "/tmp/hf_home"
+        - name: VDIFF_GPU_MEMORY_UTILIZATION
+          value: "0.9"
+      
+      # Ports
+      ports:
+        - containerPort: 8000
+          protocol: TCP
+          name: http
+      
+      # Resource requirements (GPU required)
+      resources:
+        requests:
+          cpu: "4"
+          memory: "16Gi"
+        limits:
+          cpu: "8"
+          memory: "32Gi"
+      
+      # Readiness probe - matches vLLM pattern
+      readinessProbe:
+        httpGet:
+          path: /health
+          port: 8000
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 3
+      
+      # Liveness probe
+      livenessProbe:
+        httpGet:
+          path: /health
+          port: 8000
+        initialDelaySeconds: 60
+        periodSeconds: 30
+        timeoutSeconds: 10
+        failureThreshold: 3
+      
+      # Startup probe - allow time for model loading
+      startupProbe:
+        httpGet:
+          path: /health
+          port: 8000
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 60  # 10 minutes max startup
+      
+      # Volume mounts
+      volumeMounts:
+        - name: shm
+          mountPath: /dev/shm
+  
+  # Volumes
+  volumes:
+    - name: shm
+      emptyDir:
+        medium: Memory
+        sizeLimit: 2Gi
+  
+  # Burstable QoS for better GPU scheduling
+  burstable: true

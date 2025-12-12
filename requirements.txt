@@ -1,0 +1,38 @@
+# dLLM Serving - Core Dependencies
+# vLLM-compatible serving for Diffusion LLMs
+
+# PyTorch (CUDA 12.1)
+torch>=2.1.0
+# Note: For specific CUDA version, use:
+# --index-url https://download.pytorch.org/whl/cu121
+
+# Transformers and HuggingFace
+transformers>=4.36.0
+accelerate>=0.25.0
+safetensors>=0.4.0
+huggingface-hub>=0.19.0
+tokenizers>=0.15.0
+
+# Web framework (matching vLLM patterns)
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+starlette>=0.27.0
+
+# Data validation
+pydantic>=2.5.0
+
+# Metrics
+prometheus-client>=0.19.0
+
+# HTTP client
+httpx>=0.25.0
+
+# Numerical computing
+numpy>=1.24.0
+einops>=0.7.0
+
+# Utilities
+typing-extensions>=4.8.0
+tqdm>=4.66.0
+filelock>=3.13.0
+

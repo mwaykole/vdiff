@@ -1,0 +1,100 @@
+# Standalone Kubernetes deployment for vdiff
+# Use this for simple deployments without KServe or llm-d
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vdiff-standalone
+  labels:
+    app: vdiff
+    deployment-type: standalone
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vdiff
+      deployment-type: standalone
+  template:
+    metadata:
+      labels:
+        app: vdiff
+        deployment-type: standalone
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: vdiff
+          image: quay.io/your-org/vdiff:latest
+          imagePullPolicy: Always
+          
+          args:
+            - "--model"
+            - "GSAI-ML/LLaDA-8B-Instruct"
+            - "--port"
+            - "8000"
+            - "--enable-apd"
+            - "--trust-remote-code"
+          
+          ports:
+            - containerPort: 8000
+              name: http
+          
+          resources:
+            requests:
+              cpu: "4"
+              memory: "16Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "8"
+              memory: "32Gi"
+              nvidia.com/gpu: "1"
+          
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+          
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+      
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vdiff-standalone
+  labels:
+    app: vdiff
+spec:
+  type: LoadBalancer
+  selector:
+    app: vdiff
+    deployment-type: standalone
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000

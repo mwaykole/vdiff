@@ -1,0 +1,60 @@
+# Service for vdiff deployment
+# Compatible with llm-d service discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: vdiff-llada-8b
+  labels:
+    app: vdiff
+    model: llada-8b-instruct
+    llm-d.ai/backend: vdiff
+  annotations:
+    # Enable service mesh if using Istio
+    # service.istio.io/canonical-name: vdiff-llada-8b
+spec:
+  type: ClusterIP
+  selector:
+    app: vdiff
+    model: llada-8b-instruct
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+
+---
+# Headless service for direct pod access
+apiVersion: v1
+kind: Service
+metadata:
+  name: vdiff-llada-8b-headless
+  labels:
+    app: vdiff
+    model: llada-8b-instruct
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app: vdiff
+    model: llada-8b-instruct
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+
+---
+# PersistentVolumeClaim for model cache
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vdiff-model-cache
+  labels:
+    app: vdiff
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 100Gi

@@ -1,0 +1,152 @@
+# llm-d Compatible Deployment for vdiff
+# Works with existing llm-d scheduler without changes
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vdiff-llada-8b
+  labels:
+    app: vdiff
+    model: llada-8b-instruct
+    llm-d.ai/backend: vdiff
+    llm-d.ai/model-type: diffusion-llm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vdiff
+      model: llada-8b-instruct
+  template:
+    metadata:
+      labels:
+        app: vdiff
+        model: llada-8b-instruct
+        llm-d.ai/backend: vdiff
+        llm-d.ai/model-type: diffusion-llm
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      containers:
+        - name: vdiff
+          image: quay.io/your-org/vdiff:latest
+          imagePullPolicy: Always
+          
+          # Command
+          command:
+            - python
+            - -m
+            - vdiff.entrypoints.openai.api_server
+          
+          # Arguments
+          args:
+            - "--model"
+            - "GSAI-ML/LLaDA-8B-Instruct"
+            - "--port"
+            - "8000"
+            - "--host"
+            - "0.0.0.0"
+            - "--enable-apd"
+            - "--apd-max-parallel"
+            - "8"
+            - "--trust-remote-code"
+          
+          # Environment variables
+          env:
+            - name: CUDA_VISIBLE_DEVICES
+              value: "0"
+            - name: HF_HOME
+              value: "/models/.cache"
+            - name: TRANSFORMERS_CACHE
+              value: "/models/.cache/huggingface"
+            - name: VDIFF_GPU_MEMORY_UTILIZATION
+              value: "0.9"
+          
+          # Ports
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          
+          # Resources
+          resources:
+            requests:
+              cpu: "4"
+              memory: "16Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "8"
+              memory: "32Gi"
+              nvidia.com/gpu: "1"
+          
+          # Probes (same patterns as vLLM for llm-d compatibility)
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          
+          # Volume mounts
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+            - name: model-cache
+              mountPath: /models
+          
+          # Security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      
+      # Volumes
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: vdiff-model-cache
+      
+      # Node selector
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      
+      # Tolerations
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+      
+      # Termination grace period
+      terminationGracePeriodSeconds: 60
