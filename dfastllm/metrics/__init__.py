@@ -5,6 +5,8 @@ from dfastllm.metrics.prometheus import (
     record_request,
     metrics_endpoint,
     update_kv_cache_hit_rate,
+    update_gpu_memory,
+    update_queue_metrics,
 )
 
 __all__ = [
@@ -12,4 +14,6 @@ __all__ = [
     "record_request",
     "metrics_endpoint",
     "update_kv_cache_hit_rate",
+    "update_gpu_memory",
+    "update_queue_metrics",
 ]

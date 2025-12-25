@@ -84,24 +84,24 @@ class CompletionRequest(BaseModel):
     model: str
     prompt: Union[str, List[str]]
     suffix: Optional[str] = None
-    max_tokens: Optional[int] = 16
-    temperature: Optional[float] = 1.0
-    top_p: Optional[float] = 1.0
-    n: Optional[int] = 1
+    max_tokens: Optional[int] = Field(default=16, ge=1, le=16384, description="Maximum tokens to generate (1-16384)")
+    temperature: Optional[float] = Field(default=1.0, ge=0.0, le=2.0, description="Sampling temperature (0-2)")
+    top_p: Optional[float] = Field(default=1.0, ge=0.0, le=1.0, description="Nucleus sampling probability (0-1)")
+    n: Optional[int] = Field(default=1, ge=1, le=16, description="Number of completions (1-16)")
     stream: Optional[bool] = False
-    logprobs: Optional[int] = None
+    logprobs: Optional[int] = Field(default=None, ge=0, le=5, description="Number of logprobs to return (0-5)")
     echo: Optional[bool] = False
     stop: Optional[Union[str, List[str]]] = None
-    presence_penalty: Optional[float] = 0.0
-    frequency_penalty: Optional[float] = 0.0
-    best_of: Optional[int] = None
+    presence_penalty: Optional[float] = Field(default=0.0, ge=-2.0, le=2.0, description="Presence penalty (-2 to 2)")
+    frequency_penalty: Optional[float] = Field(default=0.0, ge=-2.0, le=2.0, description="Frequency penalty (-2 to 2)")
+    best_of: Optional[int] = Field(default=None, ge=1, le=20, description="Best of N completions (1-20)")
     logit_bias: Optional[Dict[str, float]] = None
-    user: Optional[str] = None
+    user: Optional[str] = Field(default=None, max_length=256)
     seed: Optional[int] = None
     
     # vdiff specific extensions
     parallel_decoding: Optional[bool] = True
-    confidence_threshold: Optional[float] = None
+    confidence_threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 
 class CompletionLogProbs(BaseModel):
@@ -164,20 +164,20 @@ class ChatCompletionRequest(BaseModel):
     """Chat completion request matching OpenAI API format."""
     
     model: str
-    messages: List[ChatMessage]
-    temperature: Optional[float] = 1.0
-    top_p: Optional[float] = 1.0
-    n: Optional[int] = 1
-    max_tokens: Optional[int] = None
+    messages: List[ChatMessage] = Field(..., min_length=1, max_length=1000, description="Messages (1-1000)")
+    temperature: Optional[float] = Field(default=1.0, ge=0.0, le=2.0, description="Sampling temperature (0-2)")
+    top_p: Optional[float] = Field(default=1.0, ge=0.0, le=1.0, description="Nucleus sampling probability (0-1)")
+    n: Optional[int] = Field(default=1, ge=1, le=16, description="Number of completions (1-16)")
+    max_tokens: Optional[int] = Field(default=None, ge=1, le=16384, description="Maximum tokens (1-16384)")
     stream: Optional[bool] = False
     stop: Optional[Union[str, List[str]]] = None
-    presence_penalty: Optional[float] = 0.0
-    frequency_penalty: Optional[float] = 0.0
+    presence_penalty: Optional[float] = Field(default=0.0, ge=-2.0, le=2.0, description="Presence penalty (-2 to 2)")
+    frequency_penalty: Optional[float] = Field(default=0.0, ge=-2.0, le=2.0, description="Frequency penalty (-2 to 2)")
     logit_bias: Optional[Dict[str, float]] = None
-    user: Optional[str] = None
+    user: Optional[str] = Field(default=None, max_length=256)
     seed: Optional[int] = None
     logprobs: Optional[bool] = False
-    top_logprobs: Optional[int] = None
+    top_logprobs: Optional[int] = Field(default=None, ge=0, le=5, description="Number of top logprobs (0-5)")
     
     # Function calling (for compatibility)
     functions: Optional[List[Dict[str, Any]]] = None
@@ -187,7 +187,7 @@ class ChatCompletionRequest(BaseModel):
     
     # vdiff specific extensions
     parallel_decoding: Optional[bool] = True
-    confidence_threshold: Optional[float] = None
+    confidence_threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 
 class ChatCompletionResponseMessage(BaseModel):

@@ -52,7 +52,13 @@ from dfastllm.entrypoints.openai.protocol import (
 )
 from dfastllm.entrypoints.openai.serving_completion import OpenAIServingCompletion
 from dfastllm.entrypoints.openai.serving_chat import OpenAIServingChat
-from dfastllm.metrics import setup_metrics, metrics_endpoint, record_request
+from dfastllm.metrics import (
+    setup_metrics,
+    metrics_endpoint,
+    record_request,
+    update_gpu_memory,
+    update_queue_metrics,
+)
 
 # Configure structured logging
 logging.basicConfig(
@@ -226,6 +232,51 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# Maximum request body size (10MB for large prompts)
+MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024
+
+
+class RequestBodyLimitMiddleware(BaseHTTPMiddleware):
+    """Middleware to limit request body size and prevent DoS."""
+    
+    async def dispatch(self, request: Request, call_next: Callable):
+        # Check Content-Length header if present
+        content_length = request.headers.get("content-length")
+        if content_length:
+            try:
+                if int(content_length) > MAX_REQUEST_BODY_SIZE:
+                    return JSONResponse(
+                        status_code=413,
+                        content={
+                            "object": "error",
+                            "message": f"Request body too large. Maximum size: {MAX_REQUEST_BODY_SIZE} bytes",
+                            "type": "invalid_request_error",
+                            "code": 413,
+                        },
+                    )
+            except ValueError:
+                pass
+        
+        return await call_next(request)
+
+
+class ClientDisconnectMiddleware(BaseHTTPMiddleware):
+    """Middleware to detect client disconnection."""
+    
+    async def dispatch(self, request: Request, call_next: Callable):
+        # Store disconnect state on request for downstream use
+        request.state.client_disconnected = False
+        
+        async def check_disconnect():
+            if await request.is_disconnected():
+                request.state.client_disconnected = True
+                return True
+            return False
+        
+        request.state.check_disconnect = check_disconnect
+        return await call_next(request)
+
+
 async def verify_api_key(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> bool:
@@ -348,8 +399,47 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         served_model_names=served_model_names,
     )
     
+    # Model warm-up: run a small inference to warm caches
+    logger.info("Warming up model with test inference...")
+    try:
+        from dfastllm.engine import SamplingParams
+        warmup_params = SamplingParams(max_tokens=5, temperature=0.0)
+        await server_state.engine.generate_async(
+            prompt="Hello",
+            sampling_params=warmup_params,
+            request_id="warmup-request",
+            timeout=60.0,
+        )
+        logger.info("Model warm-up complete")
+    except Exception as e:
+        logger.warning(f"Model warm-up failed (non-fatal): {e}")
+    
     # Setup metrics
     setup_metrics(model_name)
+    
+    # Start background metrics updater
+    async def update_metrics_periodically():
+        """Background task to update GPU and queue metrics."""
+        while not server_state.shutdown_event.is_set():
+            try:
+                if server_state.engine:
+                    status = server_state.engine.get_status()
+                    # Update GPU memory metrics
+                    if status.gpu_memory_used_mb > 0:
+                        update_gpu_memory(
+                            device=status.device,
+                            memory_bytes=int(status.gpu_memory_used_mb * 1024 * 1024),
+                        )
+                    # Update queue metrics
+                    update_queue_metrics(
+                        running=server_state.active_requests,
+                        waiting=status.queue_size,
+                    )
+            except Exception as e:
+                logger.debug(f"Error updating metrics: {e}")
+            await asyncio.sleep(5)  # Update every 5 seconds
+    
+    metrics_task = asyncio.create_task(update_metrics_periodically())
     
     logger.info("=" * 60)
     logger.info(f"vdiff API Server ready")
@@ -368,6 +458,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
     
     yield
+    
+    # Cancel metrics task
+    metrics_task.cancel()
+    try:
+        await metrics_task
+    except asyncio.CancelledError:
+        pass
     
     # Shutdown
     await graceful_shutdown()
@@ -430,6 +527,8 @@ def create_app(app_config: Optional[DFastLLMConfig] = None) -> FastAPI:
     
     # Add middleware (order matters - last added runs first)
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RequestBodyLimitMiddleware)
+    app.add_middleware(ClientDisconnectMiddleware)
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(RequestIDMiddleware)
     
