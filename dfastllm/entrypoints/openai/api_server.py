@@ -103,16 +103,17 @@ class RateLimiter:
             self._requests[client_id].append(now)
             return True
     
-    def get_remaining(self, client_id: str) -> int:
-        """Get remaining requests for client."""
-        now = time.time()
-        cutoff = now - self.window_seconds
-        
-        if client_id not in self._requests:
-            return self.max_requests
-        
-        valid_requests = [t for t in self._requests[client_id] if t > cutoff]
-        return max(0, self.max_requests - len(valid_requests))
+    async def get_remaining(self, client_id: str) -> int:
+        """Get remaining requests for client (thread-safe)."""
+        async with self._lock:
+            now = time.time()
+            cutoff = now - self.window_seconds
+            
+            if client_id not in self._requests:
+                return self.max_requests
+            
+            valid_requests = [t for t in self._requests[client_id] if t > cutoff]
+            return max(0, self.max_requests - len(valid_requests))
 
 
 class ServerState:
@@ -126,8 +127,28 @@ class ServerState:
         self.rate_limiter: Optional[RateLimiter] = None
         self.start_time: float = time.time()
         self.shutdown_event: asyncio.Event = asyncio.Event()
-        self.request_count: int = 0
-        self.active_requests: int = 0
+        self._request_count: int = 0
+        self._active_requests: int = 0
+        self._lock = asyncio.Lock()
+    
+    async def increment_requests(self) -> None:
+        """Thread-safe increment of request counters."""
+        async with self._lock:
+            self._request_count += 1
+            self._active_requests += 1
+    
+    async def decrement_active_requests(self) -> None:
+        """Thread-safe decrement of active requests."""
+        async with self._lock:
+            self._active_requests = max(0, self._active_requests - 1)
+    
+    @property
+    def request_count(self) -> int:
+        return self._request_count
+    
+    @property
+    def active_requests(self) -> int:
+        return self._active_requests
     
     @property
     def is_ready(self) -> bool:
@@ -236,7 +257,7 @@ async def check_rate_limit(request: Request) -> bool:
     client_id = request.client.host if request.client else "unknown"
     
     if not await server_state.rate_limiter.is_allowed(client_id):
-        remaining = server_state.rate_limiter.get_remaining(client_id)
+        remaining = await server_state.rate_limiter.get_remaining(client_id)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Rate limit exceeded. Remaining: {remaining}",
@@ -555,8 +576,7 @@ def register_routes(app: FastAPI) -> None:
             raise HTTPException(status_code=503, detail="Server not ready")
         
         request_id = getattr(raw_request.state, "request_id", str(uuid.uuid4()))
-        server_state.request_count += 1
-        server_state.active_requests += 1
+        await server_state.increment_requests()
         
         try:
             result = await server_state.completion_serving.create_completion(
@@ -564,8 +584,16 @@ def register_routes(app: FastAPI) -> None:
             )
             
             if request.stream:
+                # Wrap streaming response to decrement on completion
+                async def stream_with_cleanup():
+                    try:
+                        async for chunk in result:
+                            yield chunk
+                    finally:
+                        await server_state.decrement_active_requests()
+                
                 return StreamingResponse(
-                    result,
+                    stream_with_cleanup(),
                     media_type="text/event-stream",
                     headers={"X-Request-ID": request_id},
                 )
@@ -578,14 +606,14 @@ def register_routes(app: FastAPI) -> None:
                     parallel_tokens=result.parallel_tokens_decoded or 0,
                 )
             
+            await server_state.decrement_active_requests()
             return result
             
         except Exception as e:
             logger.error(f"Completion error [{request_id}]: {e}")
             record_request(success=False)
+            await server_state.decrement_active_requests()
             raise
-        finally:
-            server_state.active_requests -= 1
     
     @app.post("/v1/chat/completions")
     async def create_chat_completion(
@@ -599,8 +627,7 @@ def register_routes(app: FastAPI) -> None:
             raise HTTPException(status_code=503, detail="Server not ready")
         
         request_id = getattr(raw_request.state, "request_id", str(uuid.uuid4()))
-        server_state.request_count += 1
-        server_state.active_requests += 1
+        await server_state.increment_requests()
         
         try:
             result = await server_state.chat_serving.create_chat_completion(
@@ -608,8 +635,16 @@ def register_routes(app: FastAPI) -> None:
             )
             
             if request.stream:
+                # Wrap streaming response to decrement on completion
+                async def stream_with_cleanup():
+                    try:
+                        async for chunk in result:
+                            yield chunk
+                    finally:
+                        await server_state.decrement_active_requests()
+                
                 return StreamingResponse(
-                    result,
+                    stream_with_cleanup(),
                     media_type="text/event-stream",
                     headers={"X-Request-ID": request_id},
                 )
@@ -622,14 +657,14 @@ def register_routes(app: FastAPI) -> None:
                     parallel_tokens=result.parallel_tokens_decoded or 0,
                 )
             
+            await server_state.decrement_active_requests()
             return result
             
         except Exception as e:
             logger.error(f"Chat completion error [{request_id}]: {e}")
             record_request(success=False)
+            await server_state.decrement_active_requests()
             raise
-        finally:
-            server_state.active_requests -= 1
     
     @app.get("/metrics")
     async def get_metrics() -> Response:

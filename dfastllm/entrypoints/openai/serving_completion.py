@@ -77,6 +77,10 @@ class OpenAIServingCompletion:
         # Handle prompt (single or batch)
         prompts = request.prompt if isinstance(request.prompt, list) else [request.prompt]
         
+        # Validate prompts
+        if not prompts or all(not p for p in prompts):
+            raise ValueError("prompt cannot be empty")
+        
         # Build sampling params
         sampling_params = SamplingParams(
             n=request.n or 1,

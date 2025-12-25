@@ -120,6 +120,10 @@ class OpenAIServingChat:
             request_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
         self._request_counter += 1
         
+        # Validate messages
+        if not request.messages:
+            raise ValueError("messages cannot be empty")
+        
         # Validate model
         if request.model not in self.served_model_names:
             logger.warning(

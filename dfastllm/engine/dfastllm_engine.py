@@ -413,10 +413,11 @@ class DFastLLMEngine:
                 self._mask_id = mask_id
         
         # Initialize diffusion sampler with optimizations from config
+        # Note: temperature is set per-request, default to 0.0 here
         sampler_config = DiffusionSamplerConfig(
             steps=self.config.diffusion_steps,
             block_length=self.config.block_size,
-            temperature=0.0,
+            temperature=0.0,  # Will be overridden per-request
             remasking="low_confidence",
             mask_id=self._mask_id,
             use_float32_gumbel=False,
