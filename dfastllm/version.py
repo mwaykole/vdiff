@@ -12,6 +12,7 @@ __version_info__ = tuple(int(x) for x in __version__.split("."))
 
 # Version compatibility info
 OPENAI_API_VERSION = "v1"
+VLLM_COMPAT_VERSION = "0.4.0"  # vLLM API compatibility version
 
 # Build info
 BUILD_TYPE = "production"
