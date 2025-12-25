@@ -532,8 +532,14 @@ def create_app(app_config: Optional[DFastLLMConfig] = None) -> FastAPI:
     app.add_middleware(LoggingMiddleware)
     app.add_middleware(RequestIDMiddleware)
     
-    # Add CORS middleware
+    # Add CORS middleware with secure defaults
     if config:
+        # Check if using insecure wildcard origins in production
+        if "*" in config.allowed_origins:
+            logger.warning(
+                "SECURITY WARNING: CORS is configured to allow all origins ('*'). "
+                "This is insecure for production. Set VDIFF_ALLOWED_ORIGINS to specific domains."
+            )
         app.add_middleware(
             CORSMiddleware,
             allow_origins=config.allowed_origins,
@@ -542,12 +548,17 @@ def create_app(app_config: Optional[DFastLLMConfig] = None) -> FastAPI:
             allow_headers=config.allowed_headers,
         )
     else:
+        # Secure defaults: only allow localhost in development
+        logger.warning(
+            "No CORS configuration provided. Using restrictive defaults (localhost only). "
+            "Set allowed_origins in config for production."
+        )
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
+            allow_origins=["http://localhost:3000", "http://localhost:8080", "http://127.0.0.1:3000"],
             allow_credentials=False,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
         )
     
     # Register routes
@@ -794,6 +805,48 @@ def register_routes(app: FastAPI) -> None:
         if server_state.engine is None:
             raise HTTPException(status_code=503, detail="Engine not ready")
         return server_state.engine.get_health().to_dict()
+    
+    @app.delete("/v1/requests/{request_id}")
+    async def cancel_request(
+        request_id: str,
+        _: bool = Depends(verify_api_key),
+    ) -> Dict[str, Any]:
+        """Cancel a pending request (vdiff extension).
+        
+        This endpoint allows clients to cancel requests that are still in the queue.
+        Requests that are already being processed cannot be cancelled.
+        
+        Args:
+            request_id: The ID of the request to cancel.
+        
+        Returns:
+            Status of the cancellation operation.
+        """
+        if server_state.engine is None:
+            raise HTTPException(status_code=503, detail="Engine not ready")
+        
+        try:
+            # Try to cancel the request in the engine's queue
+            cancelled = await server_state.engine.cancel_request(request_id)
+            if cancelled:
+                logger.info(f"Request {request_id} cancelled successfully")
+                return {
+                    "request_id": request_id,
+                    "status": "cancelled",
+                    "message": "Request cancelled successfully",
+                }
+            else:
+                return {
+                    "request_id": request_id,
+                    "status": "not_found",
+                    "message": "Request not found or already completed",
+                }
+        except Exception as e:
+            logger.error(f"Failed to cancel request {request_id}: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to cancel request: {str(e)}",
+            )
 
 
 def parse_args() -> argparse.Namespace:

@@ -56,6 +56,14 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch not available, running in mock mode")
 
+# Check for streaming support
+STREAMING_AVAILABLE = False
+try:
+    from transformers import TextIteratorStreamer
+    STREAMING_AVAILABLE = True
+except ImportError:
+    logger.info("TextIteratorStreamer not available, using fallback streaming")
+
 
 class EngineState(Enum):
     """Engine lifecycle states."""
@@ -730,7 +738,8 @@ class DFastLLMEngine:
     ) -> AsyncIterator[RequestOutput]:
         """Generate text completion with streaming.
         
-        For diffusion models, this yields partial results as tokens are unmasked.
+        Uses TextIteratorStreamer for real token-by-token streaming when available.
+        Falls back to yielding complete result for diffusion models or when unavailable.
         
         Args:
             prompt: Input prompt text.
@@ -743,10 +752,115 @@ class DFastLLMEngine:
         """
         request_id = request_id or str(uuid.uuid4())
         
-        # For now, yield the complete result
-        # TODO: Implement true streaming for diffusion
-        output = await self.generate_async(prompt, sampling_params, request_id, timeout)
-        yield output
+        # For diffusion models or when streaming not available, use fallback
+        if self._is_diffusion_model or not STREAMING_AVAILABLE or not TORCH_AVAILABLE:
+            output = await self.generate_async(prompt, sampling_params, request_id, timeout)
+            yield output
+            return
+        
+        # Real streaming for autoregressive models
+        try:
+            start_time = time.time()
+            metrics = RequestMetrics(
+                request_id=request_id,
+                arrival_time=start_time,
+            )
+            
+            # Tokenize input
+            input_ids = self._tokenizer.encode(prompt, return_tensors="pt")
+            if TORCH_AVAILABLE:
+                input_ids = input_ids.to(self._device)
+            
+            metrics.prompt_tokens = input_ids.shape[1] if TORCH_AVAILABLE else len(input_ids)
+            
+            # Create streamer
+            streamer = TextIteratorStreamer(
+                self._tokenizer._tokenizer,
+                skip_prompt=True,
+                skip_special_tokens=sampling_params.skip_special_tokens,
+            )
+            
+            # Generation kwargs
+            gen_kwargs = {
+                "input_ids": input_ids,
+                "max_new_tokens": sampling_params.max_tokens,
+                "temperature": max(sampling_params.temperature, 1e-7),
+                "top_p": sampling_params.top_p,
+                "do_sample": sampling_params.temperature > 0,
+                "pad_token_id": self._tokenizer.pad_token_id,
+                "eos_token_id": self._tokenizer.eos_token_id,
+                "streamer": streamer,
+            }
+            gen_kwargs = {k: v for k, v in gen_kwargs.items() if v is not None}
+            
+            # Run generation in background thread
+            def generate_in_thread():
+                with torch.no_grad():
+                    self._model.generate(**gen_kwargs)
+            
+            import threading
+            thread = threading.Thread(target=generate_in_thread)
+            thread.start()
+            
+            # Stream tokens as they come
+            generated_text = ""
+            token_count = 0
+            first_token = True
+            
+            for new_text in streamer:
+                if first_token:
+                    metrics.first_token_time = time.time()
+                    first_token = False
+                
+                generated_text += new_text
+                token_count += 1
+                
+                # Create partial output
+                completion_output = CompletionOutput(
+                    index=0,
+                    text=generated_text,
+                    token_ids=[],  # Not tracking individual tokens in streaming
+                    finish_reason=None,
+                )
+                
+                yield RequestOutput(
+                    request_id=request_id,
+                    prompt=prompt,
+                    outputs=[completion_output],
+                    finished=False,
+                    metrics=metrics,
+                )
+            
+            # Wait for thread to complete
+            thread.join(timeout=timeout or 300)
+            
+            # Final output
+            metrics.finished_time = time.time()
+            metrics.generated_tokens = token_count
+            
+            final_output = CompletionOutput(
+                index=0,
+                text=generated_text,
+                token_ids=[],
+                finish_reason="stop",
+            )
+            
+            yield RequestOutput(
+                request_id=request_id,
+                prompt=prompt,
+                outputs=[final_output],
+                finished=True,
+                metrics=metrics,
+            )
+            
+            self._stats.requests_processed += 1
+            self._stats.tokens_generated += token_count
+            
+        except Exception as e:
+            logger.error(f"Streaming generation failed: {e}")
+            # Fall back to non-streaming
+            output = await self.generate_async(prompt, sampling_params, request_id, timeout)
+            yield output
     
     def _standard_generate(
         self,
@@ -923,6 +1037,28 @@ class DFastLLMEngine:
             stats["apd"] = self._apd_decoder.get_stats()
         
         return stats
+    
+    async def cancel_request(self, request_id: str) -> bool:
+        """Cancel a pending request.
+        
+        Attempts to cancel a request that is waiting in the queue.
+        Requests that are already being processed cannot be cancelled.
+        
+        Args:
+            request_id: The ID of the request to cancel.
+        
+        Returns:
+            True if the request was found and cancelled, False otherwise.
+        """
+        with self._request_lock:
+            if request_id in self._pending_requests:
+                request = self._pending_requests.pop(request_id)
+                self._stats.current_queue_size = max(0, self._stats.current_queue_size - 1)
+                logger.info(f"Request {request_id} cancelled from queue")
+                return True
+        
+        logger.debug(f"Request {request_id} not found in pending queue")
+        return False
     
     async def shutdown(self, timeout: float = 30) -> None:
         """Gracefully shutdown the engine with request draining.
