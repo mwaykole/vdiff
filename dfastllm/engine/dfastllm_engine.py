@@ -610,15 +610,23 @@ class DFastLLMEngine:
             
             metrics.first_token_time = time.time()
             
-            # Decode output
-            generated_text = self._tokenizer.decode(
-                output_ids,
-                skip_special_tokens=sampling_params.skip_special_tokens,
-            )
+            # Decode only the GENERATED tokens (skip prompt tokens)
+            prompt_length = metrics.prompt_tokens
+            if TORCH_AVAILABLE:
+                # Extract only the newly generated token IDs
+                new_token_ids = output_ids[0][prompt_length:]
+                generated_text = self._tokenizer.decode(
+                    new_token_ids,
+                    skip_special_tokens=sampling_params.skip_special_tokens,
+                )
+            else:
+                generated_text = self._tokenizer.decode(
+                    output_ids[prompt_length:],
+                    skip_special_tokens=sampling_params.skip_special_tokens,
+                )
             
-            # Remove prompt from generated text
-            if generated_text.startswith(prompt):
-                generated_text = generated_text[len(prompt):].strip()
+            # Strip any leading/trailing whitespace
+            generated_text = generated_text.strip()
             
             metrics.finished_time = time.time()
             metrics.generated_tokens = (
