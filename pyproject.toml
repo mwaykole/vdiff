@@ -93,7 +93,8 @@ Issues = "https://github.com/mwaykole/dfastllm/issues"
 Changelog = "https://github.com/mwaykole/dfastllm/blob/main/CHANGELOG.md"
 
 [project.scripts]
-dfastllm = "dfastllm.entrypoints.openai.api_server:main"
+dfastllm = "dfastllm.cli:main"
+dfastllm-serve = "dfastllm.entrypoints.openai.api_server:main"
 dfastllm-server = "dfastllm.entrypoints.openai.api_server:main"
 
 [tool.setuptools.packages.find]
