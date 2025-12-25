@@ -10,7 +10,7 @@ flowchart TB
         LOCAL["Local<br/>(Development)"]
         DOCKER["Docker<br/>(Container)"]
         K8S["Kubernetes<br/>(Orchestration)"]
-        KSERVE["KServe/RHOAI<br/>(ML Platform)"]
+        KSERVE["KServe<br/>(ML Platform)"]
     end
     
     LOCAL --> DOCKER --> K8S --> KSERVE
@@ -284,7 +284,7 @@ kubectl get pods -n vdiff
 kubectl logs -f deployment/vdiff -n vdiff
 ```
 
-## 4. KServe / RHOAI Deployment
+## 4. KServe Deployment
 
 ### Architecture
 
@@ -322,7 +322,7 @@ metadata:
     opendatahub.io/dashboard: "true"
 spec:
   annotations:
-    openshift.io/display-name: "vdiff - Diffusion LLM Serving"
+    serving.kserve.io/display-name: "vdiff - Diffusion LLM Serving"
   multiModel: false
   supportedModelFormats:
   - name: vdiff
@@ -395,37 +395,31 @@ kubectl get inferenceservice llada-8b -n your-namespace
 kubectl get inferenceservice llada-8b -n your-namespace -o jsonpath='{.status.url}'
 ```
 
-### Using with RHOAI
+### Using with KServe Dashboard
 
 ```mermaid
 flowchart TB
-    subgraph RHOAI["Red Hat OpenShift AI"]
-        subgraph Dashboard["Dashboard"]
-            UI["RHOAI Dashboard"]
+    subgraph KServe["KServe Platform"]
+        subgraph Runtime["Custom ServingRuntime"]
+            VDIFF["dfastllm ServingRuntime"]
         end
         
-        subgraph Projects["Data Science Projects"]
-            PROJ["Your Project"]
+        subgraph Inference["InferenceService"]
+            MODEL["Your Model"]
         end
         
-        subgraph Serving["Model Serving"]
-            MS["Multi-Model Serving"]
-            SM["Single-Model Serving"]
-        end
-        
-        subgraph Runtime["Custom Runtime"]
-            VDIFF["vdiff ServingRuntime"]
+        subgraph Endpoints["API Endpoints"]
+            API["/v1/completions<br/>/v1/chat/completions"]
         end
     end
     
-    UI --> PROJ --> Serving --> Runtime
+    Runtime --> Inference --> Endpoints
 ```
 
-1. Open RHOAI Dashboard
-2. Go to Data Science Projects
-3. Click "Add runtime"
-4. Paste the ServingRuntime YAML
-5. Deploy a model using the runtime
+1. Apply the ServingRuntime: `kubectl apply -f deploy/kubernetes/kserve/serving-runtime.yaml`
+2. Apply the InferenceService: `kubectl apply -f deploy/kubernetes/kserve/inference-service.yaml`
+3. Get the service URL: `kubectl get inferenceservice -o jsonpath='{.items[0].status.url}'`
+4. Start making API requests
 
 ## Model Storage Options
 
@@ -599,7 +593,7 @@ flowchart TB
 | Local | Development | ⭐ |
 | Docker | Single machine | ⭐⭐ |
 | Kubernetes | Production, scaling | ⭐⭐⭐ |
-| KServe/RHOAI | Enterprise ML | ⭐⭐⭐⭐ |
+| KServe | Enterprise ML | ⭐⭐⭐⭐ |
 
 ## Next Steps
 

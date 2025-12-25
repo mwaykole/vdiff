@@ -1,0 +1,73 @@
+# dfastllm - Slim Docker Image (~2.5GB)
+# Uses CUDA base image with minimal packages for small size
+
+FROM docker.io/nvidia/cuda:12.4.1-base-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    DFASTLLM_HOST=0.0.0.0 \
+    DFASTLLM_PORT=8000
+
+WORKDIR /app
+
+# Install Python 3.12 and minimal system dependencies
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        software-properties-common \
+        curl \
+        ca-certificates \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        python3.12 \
+        python3.12-venv \
+        python3.12-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -sf /usr/bin/python3.12 /usr/bin/python3 \
+    && ln -sf /usr/bin/python3.12 /usr/bin/python \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.12
+
+# Install CUDA libs + C compiler for torch.compile
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+        cuda-cudart-12-4 \
+        libcublas-12-4 \
+        libcurand-12-4 \
+        gcc \
+        g++ \
+        libc-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for fast pip installs
+RUN pip install --no-cache-dir uv
+
+# Install PyTorch with CUDA support + Triton for torch.compile
+RUN uv pip install --system torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121 \
+    && uv pip install --system triton
+
+# Copy and install requirements
+COPY requirements.txt .
+RUN uv pip install --system -r requirements.txt
+
+# Copy source code
+COPY dfastllm/ ./dfastllm/
+COPY pyproject.toml setup.py ./
+
+# Install dfastllm
+RUN uv pip install --system -e .
+
+# Create non-root user
+RUN groupadd -r dfastllm && useradd -r -g dfastllm dfastllm \
+    && chown -R dfastllm:dfastllm /app
+
+USER dfastllm
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+ENTRYPOINT ["python", "-m", "dfastllm.entrypoints.openai.api_server"]
+CMD ["--help"]

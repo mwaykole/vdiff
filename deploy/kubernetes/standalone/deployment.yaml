@@ -1,22 +1,22 @@
-# Standalone Kubernetes deployment for vdiff
+# Standalone Kubernetes deployment for dfastllm
 # Use this for simple deployments without KServe or llm-d
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vdiff-standalone
+  name: dfastllm-standalone
   labels:
-    app: vdiff
+    app: dfastllm
     deployment-type: standalone
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: vdiff
+      app: dfastllm
       deployment-type: standalone
   template:
     metadata:
       labels:
-        app: vdiff
+        app: dfastllm
         deployment-type: standalone
       annotations:
         prometheus.io/scrape: "true"
@@ -24,8 +24,8 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       containers:
-        - name: vdiff
-          image: quay.io/your-org/vdiff:latest
+        - name: dfastllm
+          image: quay.io/your-org/dfastllm:latest
           imagePullPolicy: Always
           
           args:
@@ -86,13 +86,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: vdiff-standalone
+  name: dfastllm-standalone
   labels:
-    app: vdiff
+    app: dfastllm
 spec:
   type: LoadBalancer
   selector:
-    app: vdiff
+    app: dfastllm
     deployment-type: standalone
   ports:
     - name: http

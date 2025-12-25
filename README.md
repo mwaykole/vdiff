@@ -1,15 +1,28 @@
-# vdiff
+# dfastllm
 
-**Production-Ready vLLM-Compatible Server for Diffusion LLMs**
+**Production-Ready Inference Server for Diffusion Language Models**
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](https://github.com/your-org/vdiff)
+[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](https://github.com/your-org/dfastllm)
 [![Production Ready](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)]()
 
-vdiff is a **production-grade** serving framework for Diffusion Language Models (LLaDA, Dream) optimized for **Red Hat OpenShift AI (RHOAI)** and enterprise deployments. It provides vLLM-compatible APIs with enterprise features like rate limiting, health checks, and graceful shutdown.
+dfastllm is a **production-grade** serving framework specifically designed for **Diffusion Language Models** (LLaDA, Dream, MDLM). It provides OpenAI-compatible APIs with enterprise features like rate limiting, health checks, and graceful shutdown. Deploy anywhere: bare metal, Docker, Kubernetes, or any cloud platform.
 
-## ✨ Key Features
+> **🚀 v2.0 Released!** Code consolidation with unified `DiffusionGenerator` and `Scheduler` modules. Cleaner API, better maintainability.
+
+## 🎯 Why Diffusion LLMs?
+
+Diffusion Language Models offer unique advantages over autoregressive models:
+
+| Feature | Diffusion LLMs | Autoregressive LLMs |
+|---------|----------------|---------------------|
+| **Token Generation** | Parallel (multiple tokens/step) | Sequential (1 token/step) |
+| **Latency Scaling** | O(1) with output length | O(N) with output length |
+| **Revisions** | Can refine earlier tokens | Irrevocable decisions |
+| **Long-form Generation** | Constant time | Linear time increase |
+
+## 🔑 Key Features
 
 ### Production Features
 - **Rate Limiting**: Configurable request throttling per client
@@ -21,409 +34,183 @@ vdiff is a **production-grade** serving framework for Diffusion Language Models 
 - **Memory Management**: OOM protection and GPU memory monitoring
 
 ### Inference Features
-- **vLLM API Compatibility**: 100% compatible with OpenAI-style API
+- **OpenAI-Compatible API**: Drop-in replacement for OpenAI client libraries
 - **APD (Adaptive Parallel Decoding)**: 2-4x faster inference
-- **Masked Diffusion Generation**: LLaDA-style iterative unmasking
-- **Prometheus Metrics**: Compatible with OpenShift monitoring
+- **Streaming Support**: Real-time token-by-token output via SSE
+- **Multi-Model Support**: LLaDA, Dream, MDLM, and custom diffusion models
+- **CPU/GPU/TPU Support**: Run on any hardware
+
+## 📦 Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/dfastllm.git
+cd dfastllm
+
+# Install dependencies
+pip install -e .
+```
 
 ## 🚀 Quick Start
 
-### Installation
+### Local Server
 
 ```bash
-# Install from source
-pip install -e .
+# Start server with a model
+dfastllm --model microsoft/phi-2 --host 0.0.0.0 --port 8080
 
-# Or with development dependencies
-pip install -e ".[dev]"
+# Or using Python module
+python -m dfastllm.entrypoints.openai.api_server --model microsoft/phi-2
 ```
 
-### Start Server
+### Docker
 
 ```bash
-# Basic usage
-vdiff --model GSAI-ML/LLaDA-8B-Instruct --trust-remote-code
+# Build image
+docker build -t dfastllm:latest -f docker/Dockerfile .
 
-# With production options
-vdiff \
-    --model GSAI-ML/LLaDA-8B-Instruct \
-    --port 8000 \
-    --max-concurrent-requests 8 \
-    --rate-limit-requests 100 \
-    --request-timeout 300 \
-    --trust-remote-code
-
-# With API key authentication
-VDIFF_API_KEY=your-secret-key vdiff --model gpt2 --port 8000
+# Run container
+docker run -p 8080:8080 --gpus all dfastllm:latest \
+    --model /models/phi-2
 ```
 
-### API Usage
+### Kubernetes (KServe)
+
+```bash
+# Deploy ServingRuntime
+kubectl apply -f deploy/kubernetes/kserve/serving-runtime.yaml
+
+# Deploy InferenceService
+kubectl apply -f deploy/kubernetes/kserve/inference-service.yaml
+```
+
+## 📡 API Usage
+
+### Completions
 
 ```python
 from openai import OpenAI
 
-client = OpenAI(
-    base_url="http://localhost:8000/v1",
-    api_key="your-api-key"  # Or "not-needed" if auth disabled
-)
+client = OpenAI(base_url="http://localhost:8080/v1", api_key="not-needed")
 
-response = client.chat.completions.create(
-    model="llada-8b-instruct",
-    messages=[{"role": "user", "content": "Hello! How are you?"}],
+response = client.completions.create(
+    model="phi-2",
+    prompt="Explain quantum computing in simple terms:",
     max_tokens=100
 )
-print(response.choices[0].message.content)
+print(response.choices[0].text)
 ```
 
-## 📚 API Endpoints
+### Chat Completions
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Detailed health status |
-| `/health/live` | GET | Kubernetes liveness probe |
-| `/health/ready` | GET | Kubernetes readiness probe |
-| `/v1/models` | GET | List available models |
-| `/v1/completions` | POST | Text completion |
-| `/v1/chat/completions` | POST | Chat completion |
-| `/metrics` | GET | Prometheus metrics |
-| `/v1/engine/stats` | GET | Engine statistics |
-| `/docs` | GET | Interactive API documentation |
+```python
+response = client.chat.completions.create(
+    model="phi-2",
+    messages=[
+        {"role": "user", "content": "What is machine learning?"}
+    ],
+    max_tokens=100,
+    stream=True  # Streaming supported
+)
 
-## ⚙️ Configuration
+for chunk in response:
+    print(chunk.choices[0].delta.content, end="")
+```
 
-### CLI Arguments
+### Streaming
 
 ```bash
-vdiff \
-    # Model Options
-    --model MODEL                    # Model name or path (required)
-    --tokenizer TOKENIZER           # Tokenizer (defaults to model)
-    --dtype auto|float16|bfloat16   # Data type for weights
-    --trust-remote-code             # Trust HuggingFace remote code
-    
-    # Server Options
-    --host 0.0.0.0                  # Bind host
-    --port 8000                     # Bind port
-    --api-key SECRET                # API key for authentication
-    
-    # Diffusion Options
-    --diffusion-steps 64            # Number of diffusion steps
-    --block-size 32                 # Block size for generation
-    
-    # APD Options
-    --enable-apd                    # Enable APD (default)
-    --disable-apd                   # Use standard diffusion
-    --apd-max-parallel 8            # Max parallel tokens
-    --apd-threshold 0.3             # Acceptance threshold
-    
-    # Production Options
-    --max-concurrent-requests 4     # Max concurrent generations
-    --max-queue-size 256            # Max pending requests
-    --request-timeout 300           # Request timeout (seconds)
-    --rate-limit-requests 100       # Max requests per minute
-    
-    # Performance Optimization
-    --compile                       # Use torch.compile (default)
-    --no-compile                    # Disable torch.compile
-    --compile-mode MODE             # reduce-overhead|max-autotune
-    --flash-attention               # Use Flash Attention 2 (default)
-    --no-flash-attention            # Disable Flash Attention
-    --quantization 8bit|4bit        # Enable quantization
+curl -X POST http://localhost:8080/v1/completions \
+    -H "Content-Type: application/json" \
+    -d '{
+        "model": "phi-2",
+        "prompt": "Hello, world!",
+        "max_tokens": 50,
+        "stream": true
+    }'
 ```
 
-### Environment Variables
+## 📊 Performance
 
-```bash
-VDIFF_MODEL=GSAI-ML/LLaDA-8B-Instruct
-VDIFF_PORT=8000
-VDIFF_API_KEY=your-secret-key
-VDIFF_DIFFUSION_STEPS=64
-VDIFF_ENABLE_APD=true
-VDIFF_APD_MAX_PARALLEL=8
-VDIFF_MAX_CONCURRENT=4
-VDIFF_RATE_LIMIT_REQUESTS=100
-VDIFF_REQUEST_TIMEOUT=300
-```
-
-## 🐳 Docker Deployment
-
-### Build Images
-
-```bash
-# GPU image (default, with CUDA)
-docker build -t vdiff .
-
-# CPU-only image
-docker build --build-arg USE_CUDA=0 -t vdiff:cpu .
-
-# Specific CUDA version
-docker build --build-arg CUDA_VERSION=12.1.0 -t vdiff:cuda12.1 .
-```
-
-### Run Container
-
-```bash
-# GPU (recommended for production)
-docker run --gpus all -p 8000:8000 \
-    -v ~/.cache/huggingface:/workspace/.cache/huggingface \
-    vdiff \
-    --model GSAI-ML/LLaDA-8B-Instruct --trust-remote-code
-
-# CPU-only
-docker run -p 8000:8000 \
-    -v ~/.cache/huggingface:/workspace/.cache/huggingface \
-    vdiff:cpu \
-    --model gpt2
-```
-
-### Docker Compose
-
-```bash
-# Start with GPU
-docker-compose up -d
-
-# Start CPU-only
-docker-compose --profile cpu up -d vdiff-cpu
-
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
-```
-
-## ☸️ Kubernetes / RHOAI Deployment
-
-### Deploy ServingRuntime
-
-```bash
-# Create the vdiff ServingRuntime
-oc apply -f deploy/kubernetes/kserve/serving-runtime.yaml
-
-# Verify in RHOAI dashboard: Settings → Serving runtimes
-```
-
-### Deploy InferenceService
-
-```bash
-# Deploy the model
-oc apply -f deploy/kubernetes/kserve/inference-service.yaml
-
-# Get endpoint
-oc get inferenceservice llada-8b-instruct -o jsonpath='{.status.url}'
-```
-
-### Example InferenceService
-
-```yaml
-apiVersion: serving.kserve.io/v1beta1
-kind: InferenceService
-metadata:
-  name: llada-8b-instruct
-  annotations:
-    serving.kserve.io/deploymentMode: RawDeployment
-spec:
-  predictor:
-    model:
-      modelFormat:
-        name: vdiff
-      runtime: vdiff-runtime
-      storageUri: pvc://model-storage/llada-8b
-      resources:
-        requests:
-          nvidia.com/gpu: "1"
-          memory: "32Gi"
-```
-
-## 📊 Prometheus Metrics
-
-```
-# Request metrics
-vdiff_request_success_total
-vdiff_request_failure_total
-vdiff_request_latency_seconds
-
-# Token metrics
-vdiff_prompt_tokens_total
-vdiff_generation_tokens_total
-vdiff_parallel_tokens_decoded_total
-
-# Engine metrics
-vdiff_queue_size
-vdiff_active_requests
-vdiff_gpu_memory_used_bytes
-```
-
-## 🏗️ Architecture
-
-```mermaid
-flowchart TB
-    subgraph Client["Clients"]
-        SDK["OpenAI SDK"]
-        CURL["curl / HTTP"]
-    end
-
-    subgraph Server["vdiff API Server"]
-        MW["Middleware<br/>Rate Limit · Auth · Logging"]
-        API["/v1/chat/completions<br/>/v1/completions"]
-    end
-
-    subgraph Engine["VDiffEngine"]
-        Q["Request Queue"]
-        GEN["Generation<br/>Diffusion · APD"]
-        MEM["Memory Manager"]
-    end
-
-    subgraph Backend["Model Backend"]
-        HF["HuggingFace Model"]
-        GPU["GPU / CPU"]
-    end
-
-    Client --> Server
-    MW --> API
-    API --> Q
-    Q --> GEN
-    GEN --> HF
-    HF --> GPU
-    MEM --> GPU
-
-    style Server fill:#e3f2fd
-    style Engine fill:#f3e5f5
-    style Backend fill:#e8f5e9
-```
-
-### Diffusion Generation
-
-```mermaid
-flowchart LR
-    subgraph Init["Initialize"]
-        A["Prompt + [MASK] × N"]
-    end
-    
-    subgraph Loop["Diffusion Loop"]
-        B["Forward Pass"]
-        C["Compute Confidence"]
-        D["Unmask Top-K"]
-    end
-    
-    subgraph Done["Complete"]
-        E["Generated Text"]
-    end
-    
-    Init --> Loop
-    Loop -->|Iterate| Loop
-    Loop -->|All Unmasked| Done
-```
-
-## 📈 Benchmarking
-
-```bash
-# Start server
-vdiff --model gpt2 --port 8000
-
-# Run benchmark
-python benchmarks/run_benchmark.py \
-    --url http://localhost:8000 \
-    --requests 100 \
-    --concurrency 10 \
-    --max-tokens 64
-
-# Save results to file
-python benchmarks/run_benchmark.py \
-    --url http://localhost:8000 \
-    --output results.json
-```
-
-Example output:
-```
-============================================================
-BENCHMARK RESULTS
-============================================================
-Requests/sec:       12.45
-Tokens/sec:         798.32
-
-Latency (ms)
-  P50:                156.23
-  P95:                312.45
-  P99:                456.78
-============================================================
-```
-
-## 🧪 Development
-
-```bash
-# Install dev dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest tests/ -v
-
-# Run linting
-ruff check vdiff/
-black --check vdiff/
-
-# Type checking
-mypy vdiff/
-
-# Run all checks
-make check
-```
+| Metric | Value |
+|--------|-------|
+| Throughput | 35-47 tokens/sec (Phi-2 on A100) |
+| Latency (20 tokens) | ~1.4s |
+| GPU Memory (Phi-2) | 10.6 GB |
+| Concurrent Requests | 31 tokens/sec sustained |
 
 ## 📁 Project Structure
 
 ```
-vdiff/
-├── vdiff/                   # Main package
-│   ├── config.py           # Configuration classes
-│   ├── version.py          # Version info
-│   ├── engine/             # Inference engine
-│   │   ├── vdiff_engine.py # Production engine
-│   │   ├── apd.py          # Adaptive Parallel Decoding
-│   │   ├── diffusion_sampler.py  # Diffusion generation
-│   │   └── sampling_params.py
-│   ├── entrypoints/        # API server
-│   │   └── openai/         # OpenAI-compatible endpoints
-│   └── metrics/            # Prometheus metrics
-├── deploy/
-│   └── kubernetes/         # K8s manifests
-│       └── kserve/         # RHOAI manifests
-├── tests/                  # Test suite
-├── examples/               # Usage examples
-├── Dockerfile             # Multi-stage Dockerfile
-└── pyproject.toml         # Project config
+dfastllm/
+├── dfastllm/                 # Main package
+│   ├── engine/               # Core inference engine
+│   │   ├── diffusion_generator.py  # Unified generation
+│   │   ├── scheduler.py      # Request scheduling
+│   │   ├── apd.py            # Adaptive Parallel Decoding
+│   │   └── interfaces.py     # SOLID interfaces
+│   ├── entrypoints/          # API servers
+│   │   └── openai/           # OpenAI-compatible API
+│   └── config.py             # Configuration
+├── deploy/                   # Deployment configs
+│   └── kubernetes/           # K8s/KServe manifests
+├── docs/                     # Documentation
+├── benchmarks/               # Performance benchmarks
+└── tests/                    # Test suite
 ```
 
-## 🤝 Compatibility
+## 📖 Documentation
 
-| Feature | vLLM | vdiff |
-|---------|------|-------|
-| API Format | OpenAI-compatible | OpenAI-compatible |
-| Models | Autoregressive (LLaMA, Mistral) | Diffusion (LLaDA, Dream) |
-| CLI Style | `--model`, `--port` | Same + diffusion options |
-| Metrics | Prometheus | Prometheus |
-| Health Check | `/health` | `/health`, `/health/live`, `/health/ready` |
+- [Quick Start Guide](docs/QUICK_START.md)
+- [API Reference](docs/API_REFERENCE.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
+- [Performance Tuning](docs/PERFORMANCE_TUNING.md)
+- [User Guide](docs/USER_GUIDE.md)
 
-## 🔄 Comparison with Competitors
+## 🔧 Configuration
 
-| Framework | Best For | Diffusion Support |
-|-----------|----------|-------------------|
-| **vdiff** | Diffusion LLMs (LLaDA, Dream) | ✅ Yes |
-| vLLM | High-throughput autoregressive | ❌ No |
-| TGI | HuggingFace ecosystem | ❌ No |
-| TensorRT-LLM | NVIDIA optimization | ❌ No |
-| Ollama | Local development | ❌ No |
-| llama.cpp | CPU/Edge deployment | ❌ No |
+```python
+from dfastllm.config import DFastLLMConfig
 
-**vdiff is the only production-ready framework for Diffusion LLMs.**
+config = DFastLLMConfig(
+    model_name="microsoft/phi-2",
+    device="cuda",  # or "cpu", "tpu"
+    max_batch_size=32,
+    enable_apd=True,
+    rate_limit_requests=100,
+    rate_limit_window=60,
+)
+```
 
-See [docs/COMPARISON.md](docs/COMPARISON.md) for detailed comparison.
+## 🧪 Testing
 
-## 📜 License
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run specific test
+pytest tests/test_consolidated.py -v
+
+# Run with coverage
+pytest tests/ --cov=dfastllm --cov-report=html
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📄 License
 
 Apache License 2.0 - See [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-- [vLLM](https://github.com/vllm-project/vllm) for API design patterns
-- [LLaDA](https://github.com/ML-GSAI/LLaDA) for diffusion LLM algorithm
-- [Red Hat OpenShift AI](https://www.redhat.com/en/technologies/cloud-computing/openshift/openshift-ai) for enterprise serving platform
+- [LLaDA](https://github.com/ML-GSAI/LLaDA) - Large Language Diffusion with Autoregressive
+- [Dream](https://github.com/HKUNLP/Dream) - Diffusion Reasoning Model
+- [MDLM](https://github.com/kuleshov-group/mdlm) - Masked Diffusion Language Model
+- [KServe](https://kserve.github.io/website/) - Kubernetes model serving
+
+---
+
+**dfastllm** - Fast Inference for Diffusion Language Models 🚀

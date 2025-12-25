@@ -1,0 +1,169 @@
+{
+  "timestamp": "2025-12-23T22:11:09.375232",
+  "endpoint": "http://phi2-chat-predictor-vdiff-experiments.apps.test-mw-pool-2pjd4.aws.rh-ods.com",
+  "system": {
+    "status": "healthy",
+    "device": "cuda",
+    "model_loaded": true,
+    "gpu_memory_mb": 5334.32666015625,
+    "uptime_s": 264.87430143356323
+  },
+  "api": {
+    "tests": [
+      {
+        "name": "GET /health",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "GET /v1/models",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "GET /metrics",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "POST /v1/completions",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "POST /v1/chat/completions",
+        "passed": true,
+        "status": 200
+      }
+    ],
+    "passed": 5,
+    "total": 5
+  },
+  "accuracy": {
+    "total": 5,
+    "passed": 5,
+    "details": [
+      {
+        "name": "Language Completion",
+        "passed": true,
+        "response": "lazy dog.\nanswer: the quick brown (5-letter word) jumps (5-letter",
+        "matches": 2
+      },
+      {
+        "name": "Sentence Generation",
+        "passed": true,
+        "response": "[your name], and i am a curious alien from a distant galaxy. i am fascinated by",
+        "matches": 2
+      },
+      {
+        "name": "Story Continuation",
+        "passed": true,
+        "response": "young girl named lily who loved to explore the world around her. she lived in a small town near the ",
+        "matches": 1
+      },
+      {
+        "name": "Code-like Pattern",
+        "passed": true,
+        "response": "print(\"hello, world!\")\n\nif __name__ == \"__main__\":\n    app.run()\n```",
+        "matches": 3
+      },
+      {
+        "name": "List Generation",
+        "passed": true,
+        "response": "green, orange, red, yellow, blue, indigo, violet.\n\nanswer: the sequence of colors in the rainbow is ",
+        "matches": 7
+      }
+    ],
+    "accuracy_pct": 100.0
+  },
+  "throughput": [
+    {
+      "config": {
+        "num_requests": 20,
+        "max_tokens": 32,
+        "concurrency": 1
+      },
+      "results": {
+        "successful": 20,
+        "failed": 0,
+        "success_rate": 100.0,
+        "total_time_s": 23.66,
+        "total_tokens": 640,
+        "throughput_tok_s": 27.05
+      },
+      "latency": {
+        "min_ms": 1148.88,
+        "max_ms": 1233.73,
+        "avg_ms": 1182.97,
+        "p50_ms": 1183.26,
+        "p95_ms": 1233.73
+      }
+    },
+    {
+      "config": {
+        "num_requests": 20,
+        "max_tokens": 64,
+        "concurrency": 1
+      },
+      "results": {
+        "successful": 20,
+        "failed": 0,
+        "success_rate": 100.0,
+        "total_time_s": 36.37,
+        "total_tokens": 1280,
+        "throughput_tok_s": 35.2
+      },
+      "latency": {
+        "min_ms": 1779.73,
+        "max_ms": 1871.89,
+        "avg_ms": 1818.39,
+        "p50_ms": 1817.17,
+        "p95_ms": 1871.89
+      }
+    },
+    {
+      "config": {
+        "num_requests": 20,
+        "max_tokens": 128,
+        "concurrency": 1
+      },
+      "results": {
+        "successful": 20,
+        "failed": 0,
+        "success_rate": 100.0,
+        "total_time_s": 62.53,
+        "total_tokens": 2560,
+        "throughput_tok_s": 40.94
+      },
+      "latency": {
+        "min_ms": 3052.73,
+        "max_ms": 3228.39,
+        "avg_ms": 3126.68,
+        "p50_ms": 3124.88,
+        "p95_ms": 3228.39
+      }
+    },
+    {
+      "config": {
+        "num_requests": 30,
+        "max_tokens": 64,
+        "concurrency": 1
+      },
+      "results": {
+        "successful": 30,
+        "failed": 0,
+        "success_rate": 100.0,
+        "total_time_s": 54.53,
+        "total_tokens": 1920,
+        "throughput_tok_s": 35.21
+      },
+      "latency": {
+        "min_ms": 1772.41,
+        "max_ms": 1892.9,
+        "avg_ms": 1817.79,
+        "p50_ms": 1812.11,
+        "p95_ms": 1882.36
+      }
+    }
+  ]
+}

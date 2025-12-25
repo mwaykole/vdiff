@@ -1,26 +1,26 @@
-# llm-d Compatible Deployment for vdiff
+# llm-d Compatible Deployment for dfastllm
 # Works with existing llm-d scheduler without changes
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vdiff-llada-8b
+  name: dfastllm-llada-8b
   labels:
-    app: vdiff
+    app: dfastllm
     model: llada-8b-instruct
-    llm-d.ai/backend: vdiff
+    llm-d.ai/backend: dfastllm
     llm-d.ai/model-type: diffusion-llm
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: vdiff
+      app: dfastllm
       model: llada-8b-instruct
   template:
     metadata:
       labels:
-        app: vdiff
+        app: dfastllm
         model: llada-8b-instruct
-        llm-d.ai/backend: vdiff
+        llm-d.ai/backend: dfastllm
         llm-d.ai/model-type: diffusion-llm
       annotations:
         prometheus.io/scrape: "true"
@@ -34,15 +34,15 @@ spec:
         fsGroup: 1000
       
       containers:
-        - name: vdiff
-          image: quay.io/your-org/vdiff:latest
+        - name: dfastllm
+          image: quay.io/your-org/dfastllm:latest
           imagePullPolicy: Always
           
           # Command
           command:
             - python
             - -m
-            - vdiff.entrypoints.openai.api_server
+            - dfastllm.entrypoints.openai.api_server
           
           # Arguments
           args:
@@ -136,7 +136,7 @@ spec:
             sizeLimit: 2Gi
         - name: model-cache
           persistentVolumeClaim:
-            claimName: vdiff-model-cache
+            claimName: dfastllm-model-cache
       
       # Node selector
       nodeSelector:

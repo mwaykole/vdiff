@@ -1,0 +1,213 @@
+# Default values for dfastllm
+# This is a YAML-formatted file.
+
+# Image configuration
+image:
+  repository: quay.io/mwaykole/dfastllm
+  tag: "turbo-v8"
+  pullPolicy: IfNotPresent
+
+# Image pull secrets (if needed for private registry)
+imagePullSecrets: []
+
+# Service account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# Model configuration
+model:
+  # Model name or path (e.g., "GSAI-ML/LLaDA-8B-Instruct" or "/models/my-model")
+  name: "GSAI-ML/LLaDA-8B-Instruct"
+  
+  # Storage configuration
+  storage:
+    # PVC for model storage
+    pvc:
+      enabled: true
+      name: "dfastllm-models"
+      size: "100Gi"
+      storageClass: ""  # Use default if empty
+      accessModes:
+        - ReadWriteOnce
+    
+    # Or use existing PVC
+    existingClaim: ""
+    
+    # Mount path
+    mountPath: "/models"
+
+# dfastllm server configuration
+server:
+  port: 8000
+  host: "0.0.0.0"
+  
+  # Diffusion settings
+  diffusionSteps: 64
+  blockLength: 32
+  
+  # APD (Adaptive Parallel Decoding)
+  enableApd: true
+  apdMaxParallel: 64
+  apdThreshold: 0.3
+  
+  # Flash Attention
+  flashAttention: true
+  
+  # Trust remote code for custom models
+  trustRemoteCode: true
+  
+  # Maximum model context length
+  maxModelLen: 4096
+  
+  # GPU memory utilization
+  gpuMemoryUtilization: 0.9
+
+# Resource configuration
+resources:
+  requests:
+    cpu: "4"
+    memory: "16Gi"
+    nvidia.com/gpu: "1"
+  limits:
+    cpu: "8"
+    memory: "32Gi"
+    nvidia.com/gpu: "1"
+
+# Replica configuration
+replicaCount: 1
+
+# Autoscaling
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+  annotations: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: dfastllm.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: dfastllm-tls
+  #    hosts:
+  #      - dfastllm.local
+
+# OpenShift Route (optional, for OpenShift clusters)
+route:
+  enabled: false
+  host: ""
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+
+# Health checks
+probes:
+  readiness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  liveness:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  startup:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 60  # 10 minutes max startup
+
+# Prometheus metrics
+metrics:
+  enabled: true
+  port: 8000
+  path: /metrics
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s
+
+# Node selector
+nodeSelector:
+  nvidia.com/gpu.present: "true"
+
+# Tolerations
+tolerations:
+  - key: "nvidia.com/gpu"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+# Affinity
+affinity: {}
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+
+# Extra environment variables
+extraEnv:
+  - name: HF_HOME
+    value: "/tmp/.cache"
+  - name: TRANSFORMERS_CACHE
+    value: "/tmp/.cache"
+
+# Extra volume mounts
+extraVolumeMounts:
+  - name: shm
+    mountPath: /dev/shm
+  - name: cache
+    mountPath: /tmp/.cache
+
+# Extra volumes
+extraVolumes:
+  - name: shm
+    emptyDir:
+      medium: Memory
+      sizeLimit: 4Gi
+  - name: cache
+    emptyDir:
+      sizeLimit: 10Gi
+

@@ -1,41 +1,39 @@
-# Red Hat OpenShift AI (RHOAI) Deployment
+# Kubernetes / KServe Deployment
 
-This guide covers deploying vdiff on Red Hat OpenShift AI.
+This guide covers deploying dfastllm on Kubernetes using KServe.
 
 ## Prerequisites
 
-- Red Hat OpenShift AI installed and configured
-- NVIDIA GPU Operator installed
-- GPU nodes available in the cluster
-- `oc` CLI configured with cluster access
+- Kubernetes cluster (any distribution: EKS, GKE, AKS, OpenShift, or self-managed)
+- KServe installed ([installation guide](https://kserve.github.io/website/latest/admin/kubernetes_deployment/))
+- NVIDIA GPU Operator (if using GPUs)
+- `kubectl` CLI configured with cluster access
 
 ## Quick Start
 
 ```bash
 # 1. Deploy the ServingRuntime
-oc apply -f deploy/kubernetes/kserve/serving-runtime.yaml
+kubectl apply -f deploy/kubernetes/kserve/serving-runtime.yaml
 
 # 2. Deploy the InferenceService
-oc apply -f deploy/kubernetes/kserve/inference-service.yaml
+kubectl apply -f deploy/kubernetes/kserve/inference-service.yaml
 
 # 3. Wait for deployment
-oc wait --for=condition=Ready inferenceservice/llada-8b-instruct --timeout=600s
+kubectl wait --for=condition=Ready inferenceservice/llada-8b-instruct --timeout=600s
 
 # 4. Get the endpoint
-oc get inferenceservice llada-8b-instruct
+kubectl get inferenceservice llada-8b-instruct
 ```
 
 ## Step-by-Step Guide
 
 ### 1. Create the ServingRuntime
 
-The ServingRuntime defines how vdiff containers are created:
+The ServingRuntime defines how dfastllm containers are created:
 
 ```bash
-oc apply -f deploy/kubernetes/kserve/serving-runtime.yaml
+kubectl apply -f deploy/kubernetes/kserve/serving-runtime.yaml
 ```
-
-Verify in RHOAI dashboard: **Settings → Serving runtimes → vdiff**
 
 ### 2. Prepare Model Storage
 
@@ -43,7 +41,7 @@ Verify in RHOAI dashboard: **Settings → Serving runtimes → vdiff**
 
 ```bash
 # Create the PVC
-oc apply -f - <<EOF
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -54,11 +52,10 @@ spec:
   resources:
     requests:
       storage: 100Gi
-  storageClassName: gp3-csi
 EOF
 
 # Create a Job to download the model
-oc apply -f - <<EOF
+kubectl apply -f - <<EOF
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -97,47 +94,36 @@ storageUri: "hf://GSAI-ML/LLaDA-8B-Instruct"
 ### 3. Deploy InferenceService
 
 ```bash
-oc apply -f deploy/kubernetes/kserve/inference-service.yaml
+kubectl apply -f deploy/kubernetes/kserve/inference-service.yaml
 ```
 
 ### 4. Monitor Deployment
 
 ```bash
 # Watch pod status
-oc get pods -w
+kubectl get pods -w
 
 # Check logs
-oc logs -f deployment/llada-8b-instruct-predictor-default
+kubectl logs -f deployment/llada-8b-instruct-predictor-default
 
 # Check InferenceService status
-oc get inferenceservice llada-8b-instruct -o yaml
+kubectl get inferenceservice llada-8b-instruct -o yaml
 ```
 
 ### 5. Access the Service
 
 ```bash
-# Get the route
-ROUTE=$(oc get route llada-8b-instruct-predictor-default -o jsonpath='{.spec.host}')
+# Get the service URL
+SERVICE_URL=$(kubectl get inferenceservice llada-8b-instruct -o jsonpath='{.status.url}')
 
 # Test health
-curl https://${ROUTE}/health
+curl ${SERVICE_URL}/health
 
 # Test inference
-curl https://${ROUTE}/v1/chat/completions \
+curl ${SERVICE_URL}/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model": "llada-8b-instruct", "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
-
-## RHOAI Dashboard Deployment
-
-You can also deploy from the RHOAI dashboard:
-
-1. Go to **Data Science Projects**
-2. Select your project
-3. Click **Models → Deploy model**
-4. Select **vdiff - Diffusion LLM ServingRuntime**
-5. Configure model path and resources
-6. Click **Deploy**
 
 ## Configuration Options
 
@@ -168,25 +154,24 @@ resources:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `VDIFF_ENABLE_APD` | Enable APD | true |
-| `VDIFF_APD_MAX_PARALLEL` | APD max parallel tokens | 8 |
-| `VDIFF_APD_THRESHOLD` | APD acceptance threshold | 0.3 |
-| `VDIFF_GPU_MEMORY_UTILIZATION` | GPU memory fraction | 0.9 |
+| `DFASTLLM_ENABLE_APD` | Enable APD | true |
+| `DFASTLLM_APD_MAX_PARALLEL` | APD max parallel tokens | 8 |
+| `DFASTLLM_APD_THRESHOLD` | APD acceptance threshold | 0.3 |
+| `DFASTLLM_GPU_MEMORY_UTILIZATION` | GPU memory fraction | 0.9 |
 
 ## Monitoring
 
 ### Prometheus Metrics
 
-Metrics are scraped automatically by OpenShift monitoring:
+Metrics are exposed at the `/metrics` endpoint:
 
 ```bash
-# Check metrics endpoint
-curl https://${ROUTE}/metrics
+curl ${SERVICE_URL}/metrics
 ```
 
 ### Grafana Dashboard
 
-Import the vdiff dashboard from `deploy/grafana/vdiff-dashboard.json` into your Grafana instance.
+Import the dfastllm dashboard from `deploy/grafana/dfastllm-dashboard.json` into your Grafana instance.
 
 ## Troubleshooting
 
@@ -194,21 +179,55 @@ Import the vdiff dashboard from `deploy/grafana/vdiff-dashboard.json` into your 
 
 ```bash
 # Check events
-oc describe pod -l serving.kserve.io/inferenceservice=llada-8b-instruct
+kubectl describe pod -l serving.kserve.io/inferenceservice=llada-8b-instruct
 
 # Check GPU availability
-oc describe node | grep -A5 "Allocated resources"
+kubectl describe nodes | grep -A5 "nvidia.com/gpu"
 ```
 
 ### Out of Memory
 
-Reduce `VDIFF_GPU_MEMORY_UTILIZATION` or use smaller model:
+Reduce `DFASTLLM_GPU_MEMORY_UTILIZATION` or use smaller model:
 ```yaml
 env:
-  - name: VDIFF_GPU_MEMORY_UTILIZATION
+  - name: DFASTLLM_GPU_MEMORY_UTILIZATION
     value: "0.8"
 ```
 
 ### Slow Cold Start
 
 Use PVC with pre-downloaded model instead of HuggingFace URI.
+
+## Platform-Specific Notes
+
+### Amazon EKS
+```bash
+# Install GPU Operator
+kubectl apply -f https://raw.githubusercontent.com/NVIDIA/gpu-operator/master/deployments/gpu-operator.yaml
+```
+
+### Google GKE
+```bash
+# Create GPU node pool
+gcloud container node-pools create gpu-pool \
+  --accelerator type=nvidia-tesla-a100,count=1 \
+  --machine-type n1-standard-8
+```
+
+### Azure AKS
+```bash
+# Add GPU node pool
+az aks nodepool add \
+  --resource-group myResourceGroup \
+  --cluster-name myAKSCluster \
+  --name gpunp \
+  --node-count 1 \
+  --node-vm-size Standard_NC6
+```
+
+### OpenShift
+```bash
+# Use 'oc' instead of 'kubectl'
+oc apply -f deploy/kubernetes/kserve/serving-runtime.yaml
+oc apply -f deploy/kubernetes/kserve/inference-service.yaml
+```

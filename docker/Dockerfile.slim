@@ -1,0 +1,59 @@
+# dfastllm - Slim Dockerfile (~4-5GB instead of 9GB)
+# Single stage build with optimizations
+
+FROM docker.io/nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
+
+LABEL maintainer="dfastllm Team"
+LABEL description="vLLM-compatible serving for Diffusion LLMs"
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DFASTLLM_HOST=0.0.0.0 \
+    DFASTLLM_PORT=8000
+
+# Install minimal Python runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3.10-venv \
+    python3-pip \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && ln -sf /usr/bin/python3.10 /usr/bin/python \
+    && ln -sf /usr/bin/python3.10 /usr/bin/python3
+
+WORKDIR /app
+
+# Install PyTorch (CPU+CUDA, optimized wheel)
+RUN pip install --no-cache-dir torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121
+
+# Copy only requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && rm -rf ~/.cache/pip
+
+# Copy source code (minimal)
+COPY dfastllm/ ./dfastllm/
+COPY pyproject.toml setup.py ./
+
+# Install dfastllm
+RUN pip install --no-cache-dir -e . \
+    && rm -rf ~/.cache/pip
+
+# Create non-root user
+RUN groupadd -r dfastllm && useradd -r -g dfastllm dfastllm \
+    && chown -R dfastllm:dfastllm /app
+
+USER dfastllm
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+ENTRYPOINT ["python", "-m", "dfastllm.entrypoints.openai.api_server"]
+CMD ["--help"]
+

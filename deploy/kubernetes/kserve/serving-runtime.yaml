@@ -1,18 +1,16 @@
-# vdiff ServingRuntime for Red Hat OpenShift AI (RHOAI)
-# This ServingRuntime enables diffusion LLM serving in RHOAI
+# dfastllm ServingRuntime for KServe
+# This ServingRuntime enables diffusion LLM serving on any Kubernetes cluster with KServe
+# Works with: EKS, GKE, AKS, OpenShift, or self-managed Kubernetes
 apiVersion: serving.kserve.io/v1alpha1
 kind: ServingRuntime
 metadata:
-  name: vdiff-runtime
+  name: dfastllm-runtime
   labels:
-    # Required for RHOAI dashboard visibility
-    opendatahub.io/dashboard: "true"
+    # Optional: For KServe UI/dashboard visibility
+    serving.kserve.io/dashboard: "true"
   annotations:
-    # Display name shown in RHOAI dashboard
-    openshift.io/display-name: "vdiff - Diffusion LLM ServingRuntime"
-    opendatahub.io/template-name: "vdiff-runtime"
-    opendatahub.io/template-display-name: "vdiff ServingRuntime for Diffusion LLMs"
-    opendatahub.io/accelerator-name: "nvidia-gpu"
+    # Display name for KServe dashboard
+    serving.kserve.io/display-name: "dfastllm - Diffusion LLM ServingRuntime"
 spec:
   annotations:
     prometheus.io/scrape: "true"
@@ -46,14 +44,14 @@ spec:
   # Container specification
   containers:
     - name: kserve-container
-      image: quay.io/rhoai/vdiff:latest
+      image: ghcr.io/your-org/dfastllm:latest
       imagePullPolicy: IfNotPresent
       
       # Command
       command:
         - python
         - -m
-        - vdiff.entrypoints.openai.api_server
+        - dfastllm.entrypoints.openai.api_server
       
       # Arguments - $(MODELS_DIR) is injected by KServe
       args:
@@ -76,7 +74,7 @@ spec:
           value: "/tmp/hf_home"
         - name: HUGGINGFACE_HUB_CACHE
           value: "/tmp/hf_home"
-        - name: VDIFF_GPU_MEMORY_UTILIZATION
+        - name: DFASTLLM_GPU_MEMORY_UTILIZATION
           value: "0.9"
       
       # Ports

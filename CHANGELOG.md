@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Infrastructure
 - **Multi-stage Dockerfile**: Production, GPU, and development targets
-- **KServe Integration**: ServingRuntime and InferenceService manifests for RHOAI
+- **KServe Integration**: ServingRuntime and InferenceService manifests for Kubernetes
 - **Environment Configuration**: Full configuration via environment variables
 - **Makefile**: Development automation for testing, linting, building
 
@@ -52,4 +52,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic diffusion generation engine
 - OpenAI-compatible API endpoints
 - APD (Adaptive Parallel Decoding) support
-- KServe integration for RHOAI
+- KServe integration for Kubernetes

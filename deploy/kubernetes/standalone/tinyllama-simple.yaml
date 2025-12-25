@@ -1,0 +1,131 @@
+# TinyLlama Simple OCP Deployment
+# Minimal setup - uses pre-built PyTorch image
+#
+# Prerequisites:
+#   1. GPU node available with nvidia.com/gpu resource
+#   2. Or remove GPU requirements for CPU-only
+#
+# Deploy:
+#   oc apply -f tinyllama-simple.yaml
+#
+# Test:
+#   oc port-forward svc/tinyllama 8000:8000
+#   curl http://localhost:8000/v1/models
+#   curl -X POST http://localhost:8000/v1/chat/completions \
+#     -H "Content-Type: application/json" \
+#     -d '{"model": "TinyLlama", "messages": [{"role": "user", "content": "Hello!"}]}'
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tinyllama
+  labels:
+    app: tinyllama
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tinyllama
+  template:
+    metadata:
+      labels:
+        app: tinyllama
+    spec:
+      containers:
+        - name: dfastllm
+          # PyTorch image with CUDA support - has everything we need
+          image: pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+          
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              echo "=== Installing dfastllm dependencies ==="
+              pip install --no-cache-dir \
+                transformers>=4.36.0 \
+                accelerate>=0.25.0 \
+                fastapi>=0.104.0 \
+                "uvicorn[standard]>=0.24.0" \
+                pydantic>=2.5.0 \
+                prometheus-client>=0.19.0 \
+                sentencepiece \
+                einops \
+                safetensors
+              
+              echo "=== Installing dfastllm from source ==="
+              pip install --no-cache-dir git+https://github.com/your-org/dfastllm.git || \
+                echo "Note: If dfastllm not published, mount source via ConfigMap"
+              
+              echo "=== Starting TinyLlama server ==="
+              python -m dfastllm.entrypoints.openai.api_server \
+                --model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+                --host 0.0.0.0 \
+                --port 8000 \
+                --trust-remote-code
+          
+          ports:
+            - containerPort: 8000
+              name: http
+          
+          env:
+            - name: HF_HOME
+              value: "/workspace/.cache/huggingface"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          
+          # TinyLlama is small - adjust resources as needed
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+              # Uncomment for GPU:
+              # nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+              # nvidia.com/gpu: "1"
+          
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 180
+            periodSeconds: 10
+            failureThreshold: 30
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 300
+            periodSeconds: 30
+          
+          volumeMounts:
+            - name: shm
+              mountPath: /dev/shm
+            - name: cache
+              mountPath: /workspace/.cache
+      
+      volumes:
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+        - name: cache
+          emptyDir:
+            sizeLimit: 10Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tinyllama
+spec:
+  type: ClusterIP
+  selector:
+    app: tinyllama
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+

@@ -307,19 +307,19 @@ flowchart TB
 - Self-healing (restart crashed apps)
 - Load balancing
 
-## What is RHOAI?
+## What is KServe?
 
-**RHOAI** = Red Hat OpenShift AI
+**KServe** is a standard for serving ML models on Kubernetes.
 
-It's an enterprise platform for running AI on Kubernetes:
+It provides:
+- **ServingRuntime**: Defines how to run inference servers
+- **InferenceService**: Deploys a specific model
 
 ```mermaid
 flowchart TB
-    subgraph RHOAI["Red Hat OpenShift AI"]
-        subgraph KServe["KServe (Model Serving)"]
-            RT[ServingRuntime]
-            IS[InferenceService]
-        end
+    subgraph KServe["KServe (Model Serving)"]
+        RT[ServingRuntime]
+        IS[InferenceService]
         
         subgraph Models["Your Models"]
             M1["LLaDA-8B"]

@@ -38,7 +38,7 @@ vdiff/
 ├── 📁 deploy/                   # Deployment files
 │   ├── 📁 docker/               # Docker files
 │   └── 📁 kubernetes/           # K8s manifests
-│       ├── 📁 kserve/           # KServe/RHOAI
+│       ├── 📁 kserve/           # KServe manifests
 │       ├── 📁 llmd/             # llm-d integration
 │       └── 📁 standalone/       # Standalone K8s
 │
@@ -54,8 +54,13 @@ vdiff/
 ├── 📁 scripts/                  # Utility scripts
 ├── 📁 docs/                     # Documentation
 │
-├── 📄 Dockerfile                # Container build
-├── 📄 docker-compose.yml        # Container orchestration
+├── 📁 docker/                   # Docker files
+│   ├── 📄 Dockerfile            # Main container build
+│   ├── 📄 Dockerfile.ocp        # OpenShift variant
+│   ├── 📄 Dockerfile.slim       # Minimal image
+│   ├── 📄 Dockerfile.vllm       # vLLM-compatible variant
+│   └── 📄 docker-compose.yml    # Container orchestration
+│
 ├── 📄 pyproject.toml            # Python package config
 ├── 📄 Makefile                  # Build automation
 ├── 📄 README.md                 # Project readme

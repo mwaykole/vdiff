@@ -1,0 +1,18 @@
+{{- if and .Values.model.storage.pvc.enabled (not .Values.model.storage.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "dfastllm.fullname" . }}-models
+  labels:
+    {{- include "dfastllm.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.model.storage.pvc.accessModes | nindent 4 }}
+  {{- if .Values.model.storage.pvc.storageClass }}
+  storageClassName: {{ .Values.model.storage.pvc.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.model.storage.pvc.size }}
+{{- end }}
+

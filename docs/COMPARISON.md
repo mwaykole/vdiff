@@ -191,7 +191,7 @@ Weaknesses:
 | **Local development** | Ollama | llama.cpp |
 | **CPU/Edge deployment** | llama.cpp | Ollama |
 | **HuggingFace integration** | TGI | vLLM |
-| **Kubernetes/RHOAI** | vLLM / **vdiff** | TGI |
+| **Kubernetes** | vLLM / **vdiff** | TGI |
 | **Simple API server** | Ollama | **vdiff** |
 
 ---
@@ -239,8 +239,8 @@ Weaknesses:
 
 ### Deployment Options
 
-| Framework | Docker | Kubernetes | RHOAI | Serverless |
-|-----------|--------|------------|-------|------------|
+| Framework | Docker | Kubernetes | KServe | Serverless |
+|-----------|--------|------------|--------|------------|
 | vdiff | ✅ | ✅ | ✅ | ⚠️ |
 | vLLM | ✅ | ✅ | ✅ | ✅ |
 | TGI | ✅ | ✅ | ✅ | ✅ |
@@ -261,9 +261,9 @@ Weaknesses:
    - Drop-in replacement for diffusion models
    - Same CLI, same endpoints, same metrics
 
-3. **RHOAI/KServe Native**
+3. **Kubernetes/KServe Native**
    - ServingRuntime included
-   - OpenShift-ready deployment
+   - Cloud-agnostic deployment
 
 4. **Production Features**
    - Rate limiting

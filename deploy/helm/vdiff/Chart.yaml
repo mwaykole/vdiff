@@ -1,0 +1,28 @@
+apiVersion: v2
+name: dfastllm
+description: A Helm chart for dfastllm - High-Performance Diffusion LLM Serving
+
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+keywords:
+  - llm
+  - diffusion
+  - inference
+  - gpu
+  - ai
+  - machine-learning
+
+home: https://github.com/your-org/dfastllm
+sources:
+  - https://github.com/your-org/dfastllm
+
+maintainers:
+  - name: dfastllm team
+    email: dfastllm@example.com
+
+annotations:
+  artifacthub.io/category: machine-learning
+  artifacthub.io/license: Apache-2.0
+

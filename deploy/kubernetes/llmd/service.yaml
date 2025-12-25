@@ -1,20 +1,20 @@
-# Service for vdiff deployment
+# Service for dfastllm deployment
 # Compatible with llm-d service discovery
 apiVersion: v1
 kind: Service
 metadata:
-  name: vdiff-llada-8b
+  name: dfastllm-llada-8b
   labels:
-    app: vdiff
+    app: dfastllm
     model: llada-8b-instruct
-    llm-d.ai/backend: vdiff
+    llm-d.ai/backend: dfastllm
   annotations:
     # Enable service mesh if using Istio
-    # service.istio.io/canonical-name: vdiff-llada-8b
+    # service.istio.io/canonical-name: dfastllm-llada-8b
 spec:
   type: ClusterIP
   selector:
-    app: vdiff
+    app: dfastllm
     model: llada-8b-instruct
   ports:
     - name: http
@@ -27,15 +27,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: vdiff-llada-8b-headless
+  name: dfastllm-llada-8b-headless
   labels:
-    app: vdiff
+    app: dfastllm
     model: llada-8b-instruct
 spec:
   type: ClusterIP
   clusterIP: None
   selector:
-    app: vdiff
+    app: dfastllm
     model: llada-8b-instruct
   ports:
     - name: http
@@ -48,9 +48,9 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: vdiff-model-cache
+  name: dfastllm-model-cache
   labels:
-    app: vdiff
+    app: dfastllm
 spec:
   accessModes:
     - ReadWriteOnce

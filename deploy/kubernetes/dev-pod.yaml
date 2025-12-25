@@ -1,0 +1,52 @@
+# Development Pod for dfastllm
+# Usage:
+#   oc apply -f dev-pod.yaml
+#   oc exec -it dfastllm-dev -- bash
+#   # Make code changes, then: python -m dfastllm.entrypoints.openai.api_server --model /models/phi-2
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dfastllm-dev
+  labels:
+    app: dfastllm-dev
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: dev
+    image: quay.io/mwaykole/dfastllm:turbo-v9
+    command: ["sleep", "infinity"]  # Keep pod running for development
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop: ["ALL"]
+    resources:
+      requests:
+        nvidia.com/gpu: "1"
+        memory: "16Gi"
+      limits:
+        nvidia.com/gpu: "1"
+        memory: "32Gi"
+    env:
+    - name: HF_HOME
+      value: "/tmp/.cache"
+    - name: TRANSFORMERS_CACHE
+      value: "/tmp/.cache"
+    volumeMounts:
+    - name: models
+      mountPath: /models
+    - name: shm
+      mountPath: /dev/shm
+  volumes:
+  - name: models
+    persistentVolumeClaim:
+      claimName: model-pvc-large
+  - name: shm
+    emptyDir:
+      medium: Memory
+      sizeLimit: 2Gi
+  restartPolicy: Never
+

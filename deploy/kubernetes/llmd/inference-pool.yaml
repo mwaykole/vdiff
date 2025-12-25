@@ -1,17 +1,17 @@
-# llm-d InferencePool for vdiff
-# Allows llm-d scheduler to route requests to vdiff backends
+# llm-d InferencePool for dfastllm
+# Allows llm-d scheduler to route requests to dfastllm backends
 apiVersion: llm-d.ai/v1alpha1
 kind: InferencePool
 metadata:
-  name: vdiff-diffusion-pool
+  name: dfastllm-diffusion-pool
   labels:
     llm-d.ai/pool-type: diffusion
 spec:
   # Pool description
-  description: "Pool for diffusion language models served by vdiff"
+  description: "Pool for diffusion language models served by dfastllm"
   
   # Backend type
-  backendType: vdiff
+  backendType: dfastllm
   
   # Model specifications
   models:

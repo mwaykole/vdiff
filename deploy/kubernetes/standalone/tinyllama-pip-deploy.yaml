@@ -1,0 +1,177 @@
+# TinyLlama OCP Deployment - Installs dfastllm via pip at runtime
+# No pre-built image needed - uses base CUDA image and installs everything
+#
+# Deploy: oc apply -f tinyllama-pip-deploy.yaml
+# Check:  oc get pods -l app=tinyllama-dfastllm
+# Logs:   oc logs -f deployment/tinyllama-dfastllm
+# Test:   curl http://tinyllama-dfastllm:8000/v1/models
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dfastllm-install-script
+  labels:
+    app: tinyllama-dfastllm
+data:
+  install.sh: |
+    #!/bin/bash
+    set -e
+    echo "=== Installing dfastllm via pip ==="
+    pip install --no-cache-dir torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121
+    pip install --no-cache-dir transformers accelerate fastapi uvicorn pydantic prometheus-client
+    
+    # Install dfastllm from GitHub (or PyPI when published)
+    pip install --no-cache-dir git+https://github.com/your-org/dfastllm.git
+    
+    echo "=== Starting dfastllm server with TinyLlama ==="
+    python -m dfastllm.entrypoints.openai.api_server \
+      --model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+      --port 8000 \
+      --max-concurrent-requests 4 \
+      --trust-remote-code
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tinyllama-dfastllm
+  labels:
+    app: tinyllama-dfastllm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tinyllama-dfastllm
+  template:
+    metadata:
+      labels:
+        app: tinyllama-dfastllm
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: dfastllm
+          # Use base CUDA image - installs everything at runtime
+          image: nvidia/cuda:12.1.0-runtime-ubuntu22.04
+          imagePullPolicy: IfNotPresent
+          
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              # Install Python first
+              apt-get update && apt-get install -y --no-install-recommends \
+                python3.10 python3.10-venv python3-pip curl git && \
+              ln -sf /usr/bin/python3.10 /usr/bin/python && \
+              ln -sf /usr/bin/python3.10 /usr/bin/python3 && \
+              # Install PyTorch + dependencies
+              pip install --no-cache-dir torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121 && \
+              pip install --no-cache-dir transformers accelerate fastapi uvicorn pydantic prometheus-client sentencepiece && \
+              # Clone and install dfastllm
+              git clone https://github.com/your-org/dfastllm.git /tmp/dfastllm && \
+              pip install --no-cache-dir -e /tmp/dfastllm && \
+              # Start server
+              python -m dfastllm.entrypoints.openai.api_server \
+                --model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+                --port 8000 \
+                --max-concurrent-requests 4 \
+                --trust-remote-code
+          
+          ports:
+            - containerPort: 8000
+              name: http
+          
+          env:
+            - name: HF_HOME
+              value: "/cache/huggingface"
+            - name: TRANSFORMERS_CACHE
+              value: "/cache/huggingface"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          
+          resources:
+            requests:
+              cpu: "2"
+              memory: "8Gi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+              nvidia.com/gpu: "1"
+          
+          # Longer initial delay - needs time to install + download model
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 300
+            periodSeconds: 10
+            timeoutSeconds: 5
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 600
+            periodSeconds: 30
+            timeoutSeconds: 10
+          
+          volumeMounts:
+            - name: cache
+              mountPath: /cache
+            - name: shm
+              mountPath: /dev/shm
+      
+      volumes:
+        - name: cache
+          emptyDir:
+            sizeLimit: 10Gi
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+      
+      # GPU node selector
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tinyllama-dfastllm
+  labels:
+    app: tinyllama-dfastllm
+spec:
+  type: ClusterIP
+  selector:
+    app: tinyllama-dfastllm
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+
+---
+# Optional: Expose via Route (OCP-specific)
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: tinyllama-dfastllm
+  labels:
+    app: tinyllama-dfastllm
+spec:
+  to:
+    kind: Service
+    name: tinyllama-dfastllm
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+

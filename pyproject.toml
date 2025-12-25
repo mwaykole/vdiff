@@ -3,29 +3,30 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "vdiff"
-version = "1.0.0"
-description = "Production-ready vLLM-compatible serving framework for Diffusion LLMs"
+name = "dfastllm"
+version = "2.0.0"
+description = "Production-ready inference server for Diffusion Language Models"
 readme = "README.md"
 license = {text = "Apache-2.0"}
 authors = [
-    {name = "vdiff Team", email = "vdiff@example.com"}
+    {name = "dfastllm Team", email = "dfastllm@example.com"}
 ]
 maintainers = [
-    {name = "vdiff Team", email = "vdiff@example.com"}
+    {name = "dfastllm Team", email = "dfastllm@example.com"}
 ]
 keywords = [
     "llm",
     "diffusion",
     "serving",
     "inference",
-    "vllm",
     "llada",
     "dream",
-    "vdiff",
-    "rhoai",
+    "mdlm",
+    "dfastllm",
+    "kubernetes",
     "kserve",
     "production",
+    "openai-api",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -81,23 +82,23 @@ monitoring = [
     "opentelemetry-instrumentation-fastapi>=0.42b0",
 ]
 all = [
-    "vdiff[dev,docs,monitoring]",
+    "dfastllm[dev,docs,monitoring]",
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/vdiff"
-Documentation = "https://your-org.github.io/vdiff"
-Repository = "https://github.com/your-org/vdiff"
-Issues = "https://github.com/your-org/vdiff/issues"
-Changelog = "https://github.com/your-org/vdiff/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/your-org/dfastllm"
+Documentation = "https://your-org.github.io/dfastllm"
+Repository = "https://github.com/your-org/dfastllm"
+Issues = "https://github.com/your-org/dfastllm/issues"
+Changelog = "https://github.com/your-org/dfastllm/blob/main/CHANGELOG.md"
 
 [project.scripts]
-vdiff = "vdiff.entrypoints.openai.api_server:main"
-vdiff-server = "vdiff.entrypoints.openai.api_server:main"
+dfastllm = "dfastllm.entrypoints.openai.api_server:main"
+dfastllm-server = "dfastllm.entrypoints.openai.api_server:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["vdiff*"]
+include = ["dfastllm*"]
 
 [tool.ruff]
 target-version = "py310"

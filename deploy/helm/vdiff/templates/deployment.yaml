@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dfastllm.fullname" . }}
+  labels:
+    {{- include "dfastllm.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "dfastllm.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      labels:
+        {{- include "dfastllm.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dfastllm.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.server.port }}
+              protocol: TCP
+          args:
+            - "--model"
+            - "{{ .Values.model.name }}"
+            - "--host"
+            - "{{ .Values.server.host }}"
+            - "--port"
+            - "{{ .Values.server.port }}"
+            {{- if .Values.server.enableApd }}
+            - "--enable-apd"
+            - "--apd-max-parallel"
+            - "{{ .Values.server.apdMaxParallel }}"
+            - "--apd-threshold"
+            - "{{ .Values.server.apdThreshold }}"
+            {{- end }}
+            {{- if .Values.server.flashAttention }}
+            - "--flash-attention"
+            {{- end }}
+            {{- if .Values.server.trustRemoteCode }}
+            - "--trust-remote-code"
+            {{- end }}
+            - "--max-model-len"
+            - "{{ .Values.server.maxModelLen }}"
+            - "--gpu-memory-utilization"
+            - "{{ .Values.server.gpuMemoryUtilization }}"
+            - "--diffusion-steps"
+            - "{{ .Values.server.diffusionSteps }}"
+            - "--block-length"
+            - "{{ .Values.server.blockLength }}"
+          env:
+            {{- toYaml .Values.extraEnv | nindent 12 }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.probes.startup.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.startup.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.startup.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            {{- if or .Values.model.storage.pvc.enabled .Values.model.storage.existingClaim }}
+            - name: models
+              mountPath: {{ .Values.model.storage.mountPath }}
+            {{- end }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+      volumes:
+        {{- if .Values.model.storage.existingClaim }}
+        - name: models
+          persistentVolumeClaim:
+            claimName: {{ .Values.model.storage.existingClaim }}
+        {{- else if .Values.model.storage.pvc.enabled }}
+        - name: models
+          persistentVolumeClaim:
+            claimName: {{ include "dfastllm.fullname" . }}-models
+        {{- end }}
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

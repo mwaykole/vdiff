@@ -1,0 +1,169 @@
+{
+  "timestamp": "2025-12-23T21:50:21.545703",
+  "endpoint": "http://phi2-chat-predictor-vdiff-experiments.apps.test-mw-pool-2pjd4.aws.rh-ods.com",
+  "system": {
+    "status": "healthy",
+    "device": "cuda",
+    "model_loaded": true,
+    "gpu_memory_mb": 5309.95166015625,
+    "uptime_s": 105.99526476860046
+  },
+  "api": {
+    "tests": [
+      {
+        "name": "GET /health",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "GET /v1/models",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "GET /metrics",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "POST /v1/completions",
+        "passed": true,
+        "status": 200
+      },
+      {
+        "name": "POST /v1/chat/completions",
+        "passed": true,
+        "status": 200
+      }
+    ],
+    "passed": 5,
+    "total": 5
+  },
+  "accuracy": {
+    "total": 5,
+    "passed": 5,
+    "details": [
+      {
+        "name": "Language Completion",
+        "passed": true,
+        "response": "lazy dog\"\n    \"\"\"\n    def is_word_boundary(c: str)",
+        "matches": 2
+      },
+      {
+        "name": "Sentence Generation",
+        "passed": true,
+        "response": "john, and i am a dog groomer.\"\n\nexercise 2: identify the subject",
+        "matches": 2
+      },
+      {
+        "name": "Story Continuation",
+        "passed": true,
+        "response": "young girl named lily who loved to climb trees. she would often spend hours outside, exploring the f",
+        "matches": 2
+      },
+      {
+        "name": "Code-like Pattern",
+        "passed": true,
+        "response": "return 'hello, world!'\n\n# then, we define the function handler for the root uri and port number.\n@ap",
+        "matches": 3
+      },
+      {
+        "name": "List Generation",
+        "passed": true,
+        "response": "rainbows are optical phenomena that occur when sunlight is refracted and reflected by water droplets",
+        "matches": 2
+      }
+    ],
+    "accuracy_pct": 100.0
+  },
+  "throughput": [
+    {
+      "config": {
+        "num_requests": 20,
+        "max_tokens": 32,
+        "concurrency": 1
+      },
+      "results": {
+        "successful": 20,
+        "failed": 0,
+        "success_rate": 100.0,
+        "total_time_s": 23.27,
+        "total_tokens": 640,
+        "throughput_tok_s": 27.5
+      },
+      "latency": {
+        "min_ms": 1134.64,
+        "max_ms": 1205.5,
+        "avg_ms": 1163.7,
+        "p50_ms": 1162.8,
+        "p95_ms": 1205.5
+      }
+    },
+    {
+      "config": {
+        "num_requests": 20,
+        "max_tokens": 64,
+        "concurrency": 1
+      },
+      "results": {
+        "successful": 20,
+        "failed": 0,
+        "success_rate": 100.0,
+        "total_time_s": 35.76,
+        "total_tokens": 1280,
+        "throughput_tok_s": 35.8
+      },
+      "latency": {
+        "min_ms": 1774.78,
+        "max_ms": 1820.26,
+        "avg_ms": 1787.74,
+        "p50_ms": 1781.87,
+        "p95_ms": 1820.26
+      }
+    },
+    {
+      "config": {
+        "num_requests": 20,
+        "max_tokens": 128,
+        "concurrency": 1
+      },
+      "results": {
+        "successful": 20,
+        "failed": 0,
+        "success_rate": 100.0,
+        "total_time_s": 65.68,
+        "total_tokens": 2560,
+        "throughput_tok_s": 38.98
+      },
+      "latency": {
+        "min_ms": 3033.45,
+        "max_ms": 5575.12,
+        "avg_ms": 3283.76,
+        "p50_ms": 3111.32,
+        "p95_ms": 5575.12
+      }
+    },
+    {
+      "config": {
+        "num_requests": 30,
+        "max_tokens": 64,
+        "concurrency": 1
+      },
+      "results": {
+        "successful": 30,
+        "failed": 0,
+        "success_rate": 100.0,
+        "total_time_s": 54.29,
+        "total_tokens": 1920,
+        "throughput_tok_s": 35.37
+      },
+      "latency": {
+        "min_ms": 1752.7,
+        "max_ms": 1842.26,
+        "avg_ms": 1809.57,
+        "p50_ms": 1818.35,
+        "p95_ms": 1840.75
+      }
+    }
+  ]
+}

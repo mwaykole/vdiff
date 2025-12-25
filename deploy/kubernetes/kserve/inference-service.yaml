@@ -1,19 +1,17 @@
-# vdiff InferenceService for Red Hat OpenShift AI (RHOAI)
+# dfastllm InferenceService for KServe
 # Deploy this after the ServingRuntime is created
+# Works with: EKS, GKE, AKS, OpenShift, or self-managed Kubernetes
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
   name: llada-8b-instruct
   labels:
-    # Required for RHOAI dashboard visibility
-    opendatahub.io/dashboard: "true"
+    serving.kserve.io/dashboard: "true"
   annotations:
-    # Use RawDeployment mode (recommended for RHOAI)
+    # Use RawDeployment mode for simpler deployment
     serving.kserve.io/deploymentMode: "RawDeployment"
-    # Enable route creation in OpenShift
-    serving.knative.openshift.io/enablePassthrough: "true"
-    # Sidecar injection (if using Service Mesh)
-    sidecar.istio.io/inject: "true"
+    # Optional: Enable Istio sidecar if using Service Mesh
+    # sidecar.istio.io/inject: "true"
 spec:
   predictor:
     # Replica configuration
@@ -29,8 +27,8 @@ spec:
       modelFormat:
         name: diffusion-llm
       
-      # Use vdiff runtime
-      runtime: vdiff-runtime
+      # Use dfastllm runtime
+      runtime: dfastllm-runtime
       
       # Model location - use one of these options:
       # Option 1: HuggingFace model (downloaded at startup)
@@ -39,7 +37,7 @@ spec:
       # Option 2: S3/MinIO storage
       # storageUri: "s3://models/llada-8b-instruct"
       
-      # Option 3: PVC with pre-downloaded model (recommended for RHOAI)
+      # Option 3: PVC with pre-downloaded model (recommended for production)
       storageUri: "pvc://model-pvc/llada-8b-instruct"
       
       # Resource requirements
@@ -55,15 +53,15 @@ spec:
       
       # Environment variables
       env:
-        - name: VDIFF_ENABLE_APD
+        - name: DFASTLLM_ENABLE_APD
           value: "true"
-        - name: VDIFF_APD_MAX_PARALLEL
+        - name: DFASTLLM_APD_MAX_PARALLEL
           value: "8"
-        - name: VDIFF_APD_THRESHOLD
+        - name: DFASTLLM_APD_THRESHOLD
           value: "0.3"
-        - name: VDIFF_MAX_MODEL_LEN
+        - name: DFASTLLM_MAX_MODEL_LEN
           value: "4096"
-        - name: VDIFF_GPU_MEMORY_UTILIZATION
+        - name: DFASTLLM_GPU_MEMORY_UTILIZATION
           value: "0.9"
     
     # Node selector for GPU nodes
@@ -75,23 +73,22 @@ spec:
       - key: "nvidia.com/gpu"
         operator: "Exists"
         effect: "NoSchedule"
-      - key: "odh-notebook"
-        operator: "Equal"
-        value: "true"
-        effect: "NoSchedule"
 
 ---
-# PersistentVolumeClaim for model storage (recommended for RHOAI)
+# PersistentVolumeClaim for model storage (recommended for production)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: model-pvc
-  labels:
-    opendatahub.io/dashboard: "true"
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 100Gi
-  storageClassName: gp3-csi  # Adjust for your OpenShift storage class
+  # Adjust storageClassName for your cluster:
+  # - AWS EKS: gp3, gp2
+  # - GCP GKE: standard, premium-rwo
+  # - Azure AKS: managed-premium, default
+  # - OpenShift: gp3-csi, managed-nfs-storage
+  # storageClassName: gp3

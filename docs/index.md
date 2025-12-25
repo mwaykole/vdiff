@@ -1,40 +1,40 @@
-# vdiff Documentation
+# dfastllm Documentation
 
-Welcome to vdiff - a vLLM-compatible framework for Diffusion LLMs on **Red Hat OpenShift AI**.
+Welcome to **dfastllm** - a production-grade inference server for Diffusion Language Models.
 
 ## Overview
 
-vdiff enables you to deploy diffusion-based language models (like LLaDA, Dream) on RHOAI with the same API and deployment patterns as vLLM. This means:
+dfastllm enables you to deploy diffusion-based language models (like LLaDA, Dream, MDLM) with the same API and deployment patterns as vLLM. This means:
 
-- **Same API**: OpenAI-compatible endpoints identical to vLLM
-- **RHOAI Native**: ServingRuntime visible in OpenShift AI dashboard
-- **APD**: Adaptive Parallel Decoding for faster inference
+- **OpenAI-Compatible API**: Same endpoints as vLLM and OpenAI
+- **Platform Agnostic**: Deploy on any infrastructure - bare metal, Docker, Kubernetes, or cloud
+- **APD**: Adaptive Parallel Decoding for 2-4x faster inference
 
-## Architecture on RHOAI
+## Architecture
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                  Red Hat OpenShift AI                  │
+│                  Your Infrastructure                    │
 ├────────────────────────────────────────────────────────┤
 │                                                        │
 │   ┌─────────────────┐     ┌─────────────────┐         │
-│   │  RHOAI Dashboard │     │   Prometheus    │         │
-│   │  (Model Serving) │     │   (Monitoring)  │         │
+│   │    Load         │     │   Prometheus    │         │
+│   │   Balancer      │     │   (Monitoring)  │         │
 │   └────────┬────────┘     └────────┬────────┘         │
 │            │                       │                   │
 │            ▼                       ▼                   │
 │   ┌─────────────────────────────────────────┐         │
-│   │              KServe                      │         │
-│   │         (RawDeployment Mode)            │         │
+│   │           dfastllm Server               │         │
+│   │     (OpenAI-Compatible API)             │         │
 │   └────────┬──────────────────┬─────────────┘         │
 │            │                  │                        │
 │   ┌────────▼────────┐ ┌──────▼──────────┐             │
-│   │  vLLM Runtime   │ │  vdiff Runtime  │             │
-│   │  (LLaMA, etc.)  │ │  (LLaDA, Dream) │             │
+│   │  Diffusion      │ │  APD Engine     │             │
+│   │  Generator      │ │  (Optimization) │             │
 │   └─────────────────┘ └─────────────────┘             │
 │                                                        │
 │   ┌─────────────────────────────────────────┐         │
-│   │         GPU Node Pool (NVIDIA)          │         │
+│   │         GPU / CPU Compute               │         │
 │   └─────────────────────────────────────────┘         │
 │                                                        │
 └────────────────────────────────────────────────────────┘
@@ -42,26 +42,44 @@ vdiff enables you to deploy diffusion-based language models (like LLaDA, Dream) 
 
 ## Quick Start
 
+### Local
+
 ```bash
-# 1. Deploy ServingRuntime
-oc apply -f deploy/kubernetes/kserve/serving-runtime.yaml
+# Install
+pip install -e .
 
-# 2. Deploy InferenceService
-oc apply -f deploy/kubernetes/kserve/inference-service.yaml
+# Start server
+dfastllm --model microsoft/phi-2 --port 8080
+```
 
-# 3. Test
-ROUTE=$(oc get route llada-8b-instruct-predictor-default -o jsonpath='{.spec.host}')
-curl https://${ROUTE}/v1/chat/completions \
-  -d '{"model":"llada-8b-instruct","messages":[{"role":"user","content":"Hello!"}]}'
+### Docker
+
+```bash
+# Build image
+docker build -t dfastllm:latest .
+
+# Run container
+docker run -p 8080:8080 --gpus all dfastllm:latest --model /models/phi-2
+```
+
+### Kubernetes
+
+```bash
+# Deploy using kubectl
+kubectl apply -f deploy/kubernetes/standalone/deployment.yaml
+
+# Or with KServe
+kubectl apply -f deploy/kubernetes/kserve/serving-runtime.yaml
+kubectl apply -f deploy/kubernetes/kserve/inference-service.yaml
 ```
 
 ## Documentation
 
-- [Getting Started](getting-started.md) - First deployment
-- [Installation](installation.md) - Local development setup
-- [RHOAI Deployment](deployment/kserve.md) - Full RHOAI guide
+- [Quick Start](QUICK_START.md) - Get running in minutes
+- [Installation](installation.md) - Detailed setup instructions
 - [API Reference](api-reference.md) - OpenAI-compatible API
 - [Configuration](configuration.md) - CLI and environment options
+- [Deployment Guide](DEPLOYMENT_GUIDE.md) - Production deployment
 - [vLLM Compatibility](vllm-compatibility.md) - Migration guide
 
 ## Supported Models
@@ -70,4 +88,17 @@ curl https://${ROUTE}/v1/chat/completions \
 |-------|------|--------|
 | LLaDA-8B-Instruct | Diffusion LLM | ✅ Tested |
 | Dream-7B | Diffusion LLM | ✅ Tested |
+| Phi-2 | Autoregressive | ✅ Tested |
 | Custom diffusion models | PyTorch | ✅ Supported |
+
+## Why dfastllm?
+
+**dfastllm is the only production-ready serving framework for Diffusion Language Models.**
+
+| Serving Framework | Diffusion LLM Support |
+|-------------------|----------------------|
+| dfastllm | ✅ Native |
+| vLLM | ❌ |
+| TGI | ❌ |
+| TensorRT-LLM | ❌ |
+| Ollama | ❌ |

@@ -1,0 +1,156 @@
+# TinyLlama OCP Deployment with Init Container Pattern
+# Faster restarts - dependencies cached in volume
+#
+# Deploy: oc apply -f tinyllama-initcontainer.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dfastllm-cache
+  labels:
+    app: tinyllama-dfastllm
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tinyllama-dfastllm
+  labels:
+    app: tinyllama-dfastllm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tinyllama-dfastllm
+  template:
+    metadata:
+      labels:
+        app: tinyllama-dfastllm
+    spec:
+      # Init container installs dependencies (cached in PVC)
+      initContainers:
+        - name: install-deps
+          image: python:3.10-slim
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              MARKER="/cache/installed.marker"
+              if [ -f "$MARKER" ]; then
+                echo "Dependencies already installed, skipping..."
+                exit 0
+              fi
+              
+              echo "=== Installing dependencies ==="
+              pip install --target=/cache/site-packages --no-cache-dir \
+                torch==2.4.0+cpu --index-url https://download.pytorch.org/whl/cpu
+              pip install --target=/cache/site-packages --no-cache-dir \
+                transformers accelerate fastapi uvicorn pydantic prometheus-client sentencepiece
+              
+              echo "=== Cloning dfastllm ==="
+              apt-get update && apt-get install -y git
+              git clone https://github.com/your-org/dfastllm.git /cache/dfastllm
+              pip install --target=/cache/site-packages --no-cache-dir -e /cache/dfastllm
+              
+              echo "=== Downloading TinyLlama model ==="
+              export PYTHONPATH=/cache/site-packages
+              python -c "from transformers import AutoModelForCausalLM, AutoTokenizer; \
+                AutoTokenizer.from_pretrained('TinyLlama/TinyLlama-1.1B-Chat-v1.0', cache_dir='/cache/models'); \
+                AutoModelForCausalLM.from_pretrained('TinyLlama/TinyLlama-1.1B-Chat-v1.0', cache_dir='/cache/models')"
+              
+              touch "$MARKER"
+              echo "=== Installation complete ==="
+          
+          volumeMounts:
+            - name: cache
+              mountPath: /cache
+          
+          resources:
+            requests:
+              cpu: "2"
+              memory: "8Gi"
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+      
+      containers:
+        - name: dfastllm
+          image: python:3.10-slim
+          
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              export PYTHONPATH=/cache/site-packages
+              export HF_HOME=/cache/models
+              export TRANSFORMERS_CACHE=/cache/models
+              cd /cache/dfastllm
+              python -m dfastllm.entrypoints.openai.api_server \
+                --model TinyLlama/TinyLlama-1.1B-Chat-v1.0 \
+                --port 8000 \
+                --max-concurrent-requests 4 \
+                --trust-remote-code
+          
+          ports:
+            - containerPort: 8000
+              name: http
+          
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          
+          resources:
+            requests:
+              cpu: "2"
+              memory: "4Gi"
+            limits:
+              cpu: "4"
+              memory: "8Gi"
+          
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+          
+          volumeMounts:
+            - name: cache
+              mountPath: /cache
+            - name: shm
+              mountPath: /dev/shm
+      
+      volumes:
+        - name: cache
+          persistentVolumeClaim:
+            claimName: dfastllm-cache
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tinyllama-dfastllm
+spec:
+  type: ClusterIP
+  selector:
+    app: tinyllama-dfastllm
+  ports:
+    - port: 8000
+      targetPort: 8000
+
