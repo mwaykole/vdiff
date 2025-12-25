@@ -246,10 +246,16 @@ def diffusion_generate(
     prompt_index[:, :prompt_length] = True
     
     # Validate block structure
-    assert gen_length % block_length == 0, "gen_length must be divisible by block_length"
+    if gen_length % block_length != 0:
+        raise ValueError(
+            f"gen_length ({gen_length}) must be divisible by block_length ({block_length})"
+        )
     num_blocks = gen_length // block_length
     
-    assert steps % num_blocks == 0, "steps must be divisible by num_blocks"
+    if steps % num_blocks != 0:
+        raise ValueError(
+            f"steps ({steps}) must be divisible by num_blocks ({num_blocks})"
+        )
     steps_per_block = steps // num_blocks
     
     # Pre-allocate CFG tensors if needed
@@ -265,7 +271,9 @@ def diffusion_generate(
     
     # Setup mixed precision context
     use_amp = use_mixed_precision and device.type == "cuda"
-    amp_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+    amp_dtype = torch.float16  # Default to float16
+    if use_amp and torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+        amp_dtype = torch.bfloat16
     
     # Adaptive step tracking
     consecutive_high_confidence = 0
