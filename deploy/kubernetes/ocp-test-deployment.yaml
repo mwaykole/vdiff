@@ -69,8 +69,12 @@ spec:
         command: ["/bin/bash", "-c"]
         args:
         - |
-          echo "=== Installing vdiff from source ==="
-          pip install --no-cache-dir git+https://github.com/mwaykole/vdiff.git@main
+          echo "=== Installing vdiff from source (using container packages) ==="
+          pip install --no-cache-dir --no-deps --target=/tmp/vdiff_pkg git+https://github.com/mwaykole/vdiff.git@main
+          export PYTHONPATH="/tmp/vdiff_pkg:$PYTHONPATH"
+          export HF_HOME="/root/.cache/huggingface"
+          export TRANSFORMERS_OFFLINE=0
+          export HF_HUB_OFFLINE=0
           
           echo "=== Starting vdiff server with optimizations ==="
           python -c "
@@ -99,7 +103,7 @@ spec:
           engine = DFastLLMEngine(config)
           
           # Run health check
-          health = engine.health_check()
+          health = engine.get_health()
           print(f'Health Status: {health.status}')
           print(f'Model Loaded: {health.model_loaded}')
           print(f'Device: {health.device}')
@@ -111,7 +115,8 @@ spec:
           output = engine.generate('Hello, how are you?', params)
           print(f'Generated: {output.outputs[0].text}')
           print(f'Tokens: {output.outputs[0].token_ids}')
-          print(f'Latency: {output.metrics.latency_ms:.2f}ms')
+          latency = output.metrics.total_latency if output.metrics.total_latency else 0
+          print(f'Total Latency: {latency:.4f}s')
           
           print('=== All Tests Passed! ===')
           "

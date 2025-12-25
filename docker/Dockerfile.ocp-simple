@@ -1,0 +1,30 @@
+# dfastllm - Lightweight OCP Dockerfile
+# Uses existing vLLM base image with dfastllm installed on top
+
+FROM quay.io/modh/vllm:rhoai-2.20-cuda
+
+# Labels
+LABEL maintainer="dfastllm Team"
+LABEL description="vLLM-compatible serving for Diffusion LLMs"
+LABEL version="2.0.0"
+
+# Copy source code
+WORKDIR /app
+COPY . .
+
+# Install dfastllm package
+RUN pip install --no-cache-dir -e . && \
+    pip install --no-cache-dir prometheus-client
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV VDIFF_HOST=0.0.0.0
+ENV VDIFF_PORT=8000
+
+# Expose port
+EXPOSE 8000
+
+# Default command - run health test
+CMD ["python", "-c", "from dfastllm.config import DFastLLMConfig; print('dfastllm installed successfully')"]
+

@@ -1,0 +1,371 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vdiff-experiments
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vdiff-test-config
+  namespace: vdiff-experiments
+data:
+  VDIFF_MODEL: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  VDIFF_MAX_MODEL_LEN: "2048"
+  VDIFF_DTYPE: "auto"
+  VDIFF_TRUST_REMOTE_CODE: "true"
+  VDIFF_HOST: "0.0.0.0"
+  VDIFF_PORT: "8000"
+  VDIFF_DIFFUSION_STEPS: "64"
+  VDIFF_BLOCK_SIZE: "32"
+  VDIFF_ENABLE_APD: "true"
+  VDIFF_APD_MAX_PARALLEL: "8"
+  VDIFF_APD_THRESHOLD: "0.3"
+  VDIFF_COMPILE: "false"
+  VDIFF_FLASH_ATTENTION: "true"
+  VDIFF_MIXED_PRECISION: "true"
+  VDIFF_ADAPTIVE_STEPS: "true"
+  VDIFF_CONFIDENCE_THRESHOLD: "0.95"
+  VDIFF_EARLY_STOPPING: "true"
+  VDIFF_MAX_CONCURRENT: "4"
+  VDIFF_MAX_QUEUE_SIZE: "256"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dfastllm-metrics
+  namespace: vdiff-experiments
+data:
+  prometheus.py: |
+    """Prometheus metrics for vdiff serving."""
+    import time
+    from typing import Optional
+    import logging
+    from fastapi.responses import Response
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        from prometheus_client import (
+            Counter, Histogram, Gauge, Info,
+            generate_latest, CONTENT_TYPE_LATEST,
+            REGISTRY,
+        )
+        PROMETHEUS_AVAILABLE = True
+    except ImportError:
+        PROMETHEUS_AVAILABLE = False
+        logger.warning("prometheus_client not available")
+
+    _metrics_initialized = False
+    _model_name = "unknown"
+
+    request_success_total = None
+    request_failure_total = None
+    prompt_tokens_total = None
+    generation_tokens_total = None
+    parallel_tokens_decoded_total = None
+    time_to_first_token_seconds = None
+    request_latency_seconds = None
+    time_per_output_token_seconds = None
+    parallel_batch_size = None
+    kv_cache_hit_rate = None
+    num_requests_running = None
+    num_requests_waiting = None
+    gpu_memory_usage = None
+    model_info = None
+
+    def setup_metrics(model_name: str) -> None:
+        global _metrics_initialized, _model_name
+        global request_success_total, request_failure_total
+        global prompt_tokens_total, generation_tokens_total
+        global parallel_tokens_decoded_total
+        global time_to_first_token_seconds, request_latency_seconds
+        global time_per_output_token_seconds, parallel_batch_size
+        global kv_cache_hit_rate, num_requests_running, num_requests_waiting
+        global gpu_memory_usage, model_info
+        
+        if not PROMETHEUS_AVAILABLE:
+            return
+        if _metrics_initialized:
+            return
+        
+        _model_name = model_name
+        
+        request_success_total = Counter(
+            "vdiff_request_success_total", "Total successful requests", ["model"])
+        request_failure_total = Counter(
+            "vdiff_request_failure_total", "Total failed requests", ["model"])
+        prompt_tokens_total = Counter(
+            "vdiff_prompt_tokens_total", "Total prompt tokens", ["model"])
+        generation_tokens_total = Counter(
+            "vdiff_generation_tokens_total", "Total generated tokens", ["model"])
+        parallel_tokens_decoded_total = Counter(
+            "vdiff_parallel_tokens_decoded_total", "Parallel decoded tokens", ["model"])
+        time_to_first_token_seconds = Histogram(
+            "vdiff_time_to_first_token_seconds", "TTFT",  ["model"],
+            buckets=(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0))
+        request_latency_seconds = Histogram(
+            "vdiff_request_latency_seconds", "Request latency", ["model"],
+            buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0))
+        time_per_output_token_seconds = Histogram(
+            "vdiff_time_per_output_token_seconds", "Time per token", ["model"],
+            buckets=(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0))
+        parallel_batch_size = Histogram(
+            "vdiff_parallel_batch_size", "Parallel batch sizes", ["model"],
+            buckets=(1, 2, 4, 8, 16, 32, 64, 128))
+        kv_cache_hit_rate = Gauge(
+            "vdiff_kv_cache_hit_rate", "KV cache hit rate", ["model"])
+        num_requests_running = Gauge(
+            "vdiff_num_requests_running", "Running requests", ["model"])
+        num_requests_waiting = Gauge(
+            "vdiff_num_requests_waiting", "Waiting requests", ["model"])
+        gpu_memory_usage = Gauge(
+            "vdiff_gpu_memory_usage_bytes", "GPU memory", ["model", "device"])
+        model_info = Info("vdiff_model", "Model info")
+        model_info.info({"model_name": model_name, "model_type": "diffusion-llm"})
+        
+        _metrics_initialized = True
+        logger.info(f"Metrics initialized for: {model_name}")
+
+    def record_request(success: bool, prompt_tokens: int = 0, generated_tokens: int = 0,
+                       ttft: Optional[float] = None, total_latency: Optional[float] = None,
+                       parallel_tokens: int = 0) -> None:
+        if not PROMETHEUS_AVAILABLE or not _metrics_initialized:
+            return
+        try:
+            if success:
+                request_success_total.labels(model=_model_name).inc()
+            else:
+                request_failure_total.labels(model=_model_name).inc()
+                return
+            if prompt_tokens > 0:
+                prompt_tokens_total.labels(model=_model_name).inc(prompt_tokens)
+            if generated_tokens > 0:
+                generation_tokens_total.labels(model=_model_name).inc(generated_tokens)
+            if parallel_tokens > 0:
+                parallel_tokens_decoded_total.labels(model=_model_name).inc(parallel_tokens)
+                parallel_batch_size.labels(model=_model_name).observe(parallel_tokens)
+            if ttft is not None and ttft > 0:
+                time_to_first_token_seconds.labels(model=_model_name).observe(ttft)
+            if total_latency is not None and total_latency > 0:
+                request_latency_seconds.labels(model=_model_name).observe(total_latency)
+                if generated_tokens > 0:
+                    time_per_output_token_seconds.labels(model=_model_name).observe(total_latency / generated_tokens)
+        except Exception as e:
+            logger.error(f"Error recording metrics: {e}")
+
+    def update_kv_cache_hit_rate(hit_rate: float) -> None:
+        if PROMETHEUS_AVAILABLE and _metrics_initialized:
+            try:
+                kv_cache_hit_rate.labels(model=_model_name).set(hit_rate)
+            except Exception as e:
+                logger.error(f"Error: {e}")
+
+    def metrics_endpoint() -> Response:
+        if not PROMETHEUS_AVAILABLE:
+            return Response(content="# Prometheus not available\n", media_type="text/plain")
+        try:
+            return Response(content=generate_latest(REGISTRY), media_type=CONTENT_TYPE_LATEST)
+        except Exception as e:
+            return Response(content=f"# Error: {e}\n", media_type="text/plain", status_code=500)
+
+    class MetricsContext:
+        def __init__(self):
+            self.start_time = None
+            self.first_token_time = None
+            self.end_time = None
+            self.prompt_tokens = 0
+            self.generated_tokens = 0
+            self.parallel_tokens = 0
+            self.success = True
+        
+        def __enter__(self):
+            self.start_time = time.time()
+            return self
+        
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            self.end_time = time.time()
+            self.success = exc_type is None
+            ttft = None
+            if self.first_token_time and self.start_time:
+                ttft = self.first_token_time - self.start_time
+            total_latency = self.end_time - self.start_time if self.end_time and self.start_time else None
+            record_request(
+                success=self.success, prompt_tokens=self.prompt_tokens,
+                generated_tokens=self.generated_tokens, ttft=ttft,
+                total_latency=total_latency, parallel_tokens=self.parallel_tokens)
+        
+        def mark_first_token(self):
+            if self.first_token_time is None:
+                self.first_token_time = time.time()
+  
+  test_metrics.py: |
+    """Integration tests for Prometheus metrics - runs on cluster."""
+    import sys
+    sys.path.insert(0, '/tmp/vdiff-test')
+    
+    from prometheus import (
+        setup_metrics, record_request, metrics_endpoint,
+        update_kv_cache_hit_rate, MetricsContext,
+        request_success_total, request_failure_total,
+        prompt_tokens_total, generation_tokens_total,
+        time_to_first_token_seconds, request_latency_seconds,
+        kv_cache_hit_rate,
+    )
+    
+    def test_setup_metrics():
+        print("Testing setup_metrics...", end=" ")
+        setup_metrics("test-model")
+        print("PASSED")
+    
+    def test_record_request_success():
+        print("Testing record_request (success)...", end=" ")
+        setup_metrics("test-model")
+        record_request(
+            success=True, prompt_tokens=10, generated_tokens=20,
+            ttft=0.1, total_latency=1.0, parallel_tokens=15)
+        print("PASSED")
+    
+    def test_record_request_failure():
+        print("Testing record_request (failure)...", end=" ")
+        setup_metrics("test-model")
+        record_request(success=False)
+        print("PASSED")
+    
+    def test_metrics_endpoint():
+        print("Testing metrics_endpoint...", end=" ")
+        setup_metrics("test-model")
+        response = metrics_endpoint()
+        assert response.status_code == 200
+        content = response.body.decode() if hasattr(response.body, 'decode') else str(response.body)
+        assert len(content) > 0
+        assert "vdiff" in content.lower() or "request" in content.lower()
+        print("PASSED")
+    
+    def test_update_kv_cache_hit_rate():
+        print("Testing update_kv_cache_hit_rate...", end=" ")
+        setup_metrics("test-model")
+        update_kv_cache_hit_rate(0.85)
+        print("PASSED")
+    
+    def test_metrics_context():
+        print("Testing MetricsContext...", end=" ")
+        setup_metrics("test-model")
+        with MetricsContext() as ctx:
+            ctx.prompt_tokens = 10
+            ctx.generated_tokens = 20
+            ctx.parallel_tokens = 15
+            ctx.mark_first_token()
+        assert ctx.first_token_time is not None
+        assert ctx.end_time is not None
+        assert ctx.success is True
+        print("PASSED")
+    
+    def test_metrics_context_on_error():
+        print("Testing MetricsContext (on error)...", end=" ")
+        setup_metrics("test-model")
+        try:
+            with MetricsContext() as ctx:
+                raise ValueError("Test error")
+        except ValueError:
+            pass
+        assert ctx.success is False
+        print("PASSED")
+    
+    def test_metric_names():
+        print("Testing metric names...", end=" ")
+        setup_metrics("test-model")
+        if request_success_total is not None:
+            name = str(request_success_total._name)
+            assert "vdiff" in name.lower() or "request_success" in name
+        print("PASSED")
+    
+    if __name__ == "__main__":
+        print("=" * 50)
+        print("Running vdiff Metrics Tests on OCP Cluster")
+        print("=" * 50)
+        
+        tests = [
+            test_setup_metrics,
+            test_record_request_success,
+            test_record_request_failure,
+            test_metrics_endpoint,
+            test_update_kv_cache_hit_rate,
+            test_metrics_context,
+            test_metrics_context_on_error,
+            test_metric_names,
+        ]
+        
+        passed = 0
+        failed = 0
+        
+        for test in tests:
+            try:
+                test()
+                passed += 1
+            except Exception as e:
+                print(f"FAILED: {e}")
+                failed += 1
+        
+        print("=" * 50)
+        print(f"Results: {passed} passed, {failed} failed")
+        print("=" * 50)
+        
+        sys.exit(0 if failed == 0 else 1)
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vdiff-metrics-test
+  namespace: vdiff-experiments
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: vdiff-test
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: test-runner
+        image: quay.io/modh/vllm:rhoai-2.20-cuda
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -e
+          echo "=== Installing dependencies ==="
+          pip install --no-cache-dir prometheus-client fastapi --user 2>/dev/null || true
+          
+          echo "=== Setting up code ==="
+          mkdir -p /tmp/vdiff-test
+          cp /config/prometheus.py /tmp/vdiff-test/
+          cp /config/test_metrics.py /tmp/vdiff-test/
+          
+          echo "=== Running tests ==="
+          cd /tmp/vdiff-test
+          python test_metrics.py
+          
+          echo "=== Tests completed ==="
+        envFrom:
+        - configMapRef:
+            name: vdiff-test-config
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+        volumeMounts:
+        - name: code-volume
+          mountPath: /config
+      volumes:
+      - name: code-volume
+        configMap:
+          name: dfastllm-metrics
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+

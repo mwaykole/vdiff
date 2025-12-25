@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dfastllm-source
+  namespace: vdiff-experiments
+data:
+  install.sh: |
+    #!/bin/bash
+    set -e
+    echo "=== Installing dfastllm dependencies ==="
+    pip install --no-cache-dir \
+      prometheus-client>=0.19.0 \
+      einops>=0.7.0
+    
+    echo "=== dfastllm installation complete ==="
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dfastllm-code
+  namespace: vdiff-experiments
+data:
+  # Core modules - embedded directly
+  __init__.py: |
+    """dfastllm - Production inference server for Diffusion LLMs."""
+    from dfastllm.version import __version__
+    __all__ = ["__version__"]
+  
+  version.py: |
+    """Version info."""
+    __version__ = "2.0.0"
+  
+  config.py: |
+    """Configuration module."""
+    import os
+    from dataclasses import dataclass, field
+    from typing import Optional
+    
+    @dataclass
+    class DFastLLMConfig:
+        """Engine configuration."""
+        model: str = "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+        max_model_len: int = 2048
+        dtype: str = "auto"
+        trust_remote_code: bool = True
+        host: str = "0.0.0.0"
+        port: int = 8000
+        diffusion_steps: int = 64
+        block_size: int = 32
+        enable_apd: bool = True
+        apd_max_parallel: int = 8
+        apd_threshold: float = 0.3
+        use_compile: bool = False
+        compile_mode: str = "reduce-overhead"
+        flash_attention: bool = True
+        mixed_precision: bool = True
+        adaptive_steps: bool = True
+        confidence_threshold: float = 0.95
+        early_stopping: bool = True
+        max_concurrent: int = 4
+        
+        @classmethod
+        def from_env(cls) -> "DFastLLMConfig":
+            return cls(
+                model=os.getenv("VDIFF_MODEL", cls.model),
+                max_model_len=int(os.getenv("VDIFF_MAX_MODEL_LEN", cls.max_model_len)),
+                dtype=os.getenv("VDIFF_DTYPE", cls.dtype),
+                trust_remote_code=os.getenv("VDIFF_TRUST_REMOTE_CODE", "true").lower() == "true",
+                host=os.getenv("VDIFF_HOST", cls.host),
+                port=int(os.getenv("VDIFF_PORT", cls.port)),
+                diffusion_steps=int(os.getenv("VDIFF_DIFFUSION_STEPS", cls.diffusion_steps)),
+                block_size=int(os.getenv("VDIFF_BLOCK_SIZE", cls.block_size)),
+                enable_apd=os.getenv("VDIFF_ENABLE_APD", "true").lower() == "true",
+                apd_max_parallel=int(os.getenv("VDIFF_APD_MAX_PARALLEL", cls.apd_max_parallel)),
+                apd_threshold=float(os.getenv("VDIFF_APD_THRESHOLD", cls.apd_threshold)),
+                use_compile=os.getenv("VDIFF_COMPILE", "false").lower() == "true",
+                flash_attention=os.getenv("VDIFF_FLASH_ATTENTION", "true").lower() == "true",
+                mixed_precision=os.getenv("VDIFF_MIXED_PRECISION", "true").lower() == "true",
+                adaptive_steps=os.getenv("VDIFF_ADAPTIVE_STEPS", "true").lower() == "true",
+                early_stopping=os.getenv("VDIFF_EARLY_STOPPING", "true").lower() == "true",
+            )
+
