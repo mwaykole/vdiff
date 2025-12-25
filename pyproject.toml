@@ -86,11 +86,11 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-org/dfastllm"
-Documentation = "https://your-org.github.io/dfastllm"
-Repository = "https://github.com/your-org/dfastllm"
-Issues = "https://github.com/your-org/dfastllm/issues"
-Changelog = "https://github.com/your-org/dfastllm/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/mwaykole/dfastllm"
+Documentation = "https://mwaykole.github.io/dfastllm"
+Repository = "https://github.com/mwaykole/dfastllm"
+Issues = "https://github.com/mwaykole/dfastllm/issues"
+Changelog = "https://github.com/mwaykole/dfastllm/blob/main/CHANGELOG.md"
 
 [project.scripts]
 dfastllm = "dfastllm.entrypoints.openai.api_server:main"

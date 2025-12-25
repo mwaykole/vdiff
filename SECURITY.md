@@ -4,11 +4,13 @@
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
+| 2.0.x   | :white_check_mark: |
+| 1.0.x   | :white_check_mark: |
+| < 1.0   | :x:                |
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in dLLM Serving, please report it responsibly:
+If you discover a security vulnerability in dfastllm, please report it responsibly:
 
 1. **Do NOT** open a public GitHub issue
 2. Email security concerns to: security@example.com

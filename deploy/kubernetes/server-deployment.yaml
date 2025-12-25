@@ -1,0 +1,178 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vdiff-experiments
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vdiff-server-config
+  namespace: vdiff-experiments
+data:
+  VDIFF_MODEL: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
+  VDIFF_MAX_MODEL_LEN: "2048"
+  VDIFF_DTYPE: "auto"
+  VDIFF_TRUST_REMOTE_CODE: "true"
+  VDIFF_HOST: "0.0.0.0"
+  VDIFF_PORT: "8000"
+  VDIFF_DIFFUSION_STEPS: "64"
+  VDIFF_BLOCK_SIZE: "32"
+  VDIFF_ENABLE_APD: "true"
+  VDIFF_APD_MAX_PARALLEL: "8"
+  VDIFF_APD_THRESHOLD: "0.3"
+  VDIFF_COMPILE: "true"
+  VDIFF_COMPILE_MODE: "reduce-overhead"
+  VDIFF_FLASH_ATTENTION: "true"
+  VDIFF_MIXED_PRECISION: "true"
+  VDIFF_ADAPTIVE_STEPS: "true"
+  VDIFF_CONFIDENCE_THRESHOLD: "0.95"
+  VDIFF_EARLY_STOPPING: "true"
+  VDIFF_MAX_CONCURRENT: "4"
+  VDIFF_MAX_QUEUE_SIZE: "256"
+  VDIFF_REQUEST_TIMEOUT: "300"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dfastllm-server
+  namespace: vdiff-experiments
+  labels:
+    app: dfastllm
+    version: v2.0.0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dfastllm
+  template:
+    metadata:
+      labels:
+        app: dfastllm
+        version: v2.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: dfastllm
+        image: quay.io/modh/vllm:rhoai-2.20-cuda
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -e
+          echo "=== Cloning dfastllm from GitHub ==="
+          cd /tmp
+          git clone --depth 1 https://github.com/mwaykole/vdiff.git dfastllm-src
+          
+          # Add package to Python path
+          export PYTHONPATH="/tmp/dfastllm-src:$PYTHONPATH"
+          
+          echo "=== Verifying dfastllm import ==="
+          python -c "from dfastllm.engine import DFastLLMEngine; print('dfastllm imported successfully!')"
+          
+          echo "=== Starting dfastllm API server ==="
+          python -m dfastllm.entrypoints.openai.api_server \
+            --model ${VDIFF_MODEL} \
+            --host ${VDIFF_HOST} \
+            --port ${VDIFF_PORT} \
+            --max-model-len ${VDIFF_MAX_MODEL_LEN} \
+            --trust-remote-code
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: HOME
+          value: "/tmp"
+        - name: PYTHONUSERBASE
+          value: "/tmp/.local"
+        envFrom:
+        - configMapRef:
+            name: vdiff-server-config
+        resources:
+          requests:
+            memory: "8Gi"
+            cpu: "2"
+            nvidia.com/gpu: "1"
+          limits:
+            memory: "16Gi"
+            cpu: "4"
+            nvidia.com/gpu: "1"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 60  # 10 min max startup
+        volumeMounts:
+        - name: cache-volume
+          mountPath: /tmp/.cache
+        - name: shm
+          mountPath: /dev/shm
+      volumes:
+      - name: cache-volume
+        emptyDir:
+          sizeLimit: 20Gi
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 2Gi
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dfastllm-service
+  namespace: vdiff-experiments
+  labels:
+    app: dfastllm
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: dfastllm
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: dfastllm-route
+  namespace: vdiff-experiments
+spec:
+  to:
+    kind: Service
+    name: dfastllm-service
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+

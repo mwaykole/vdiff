@@ -1,9 +1,22 @@
 # Changelog
 
-All notable changes to vdiff will be documented in this file.
+All notable changes to dfastllm will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.0.0] - 2024-12-25
+
+### Changed
+- **Code Consolidation**: Unified `DiffusionGenerator` and `Scheduler` modules
+- **Package Rename**: Rebranded to `dfastllm` for clarity
+- **Cleaner API**: Simplified interfaces and better maintainability
+
+### Added
+- Quantization support (INT8 dynamic quantization)
+- Adaptive step scheduling for diffusion models
+- Attention caching for performance optimization
+- Enhanced metrics with vLLM-compatible naming
 
 ## [1.0.0] - 2024-12-12
 

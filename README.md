@@ -4,7 +4,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](https://github.com/your-org/dfastllm)
+[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](https://github.com/mwaykole/dfastllm)
 [![Production Ready](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)]()
 
 dfastllm is a **production-grade** serving framework specifically designed for **Diffusion Language Models** (LLaDA, Dream, MDLM). It provides OpenAI-compatible APIs with enterprise features like rate limiting, health checks, and graceful shutdown. Deploy anywhere: bare metal, Docker, Kubernetes, or any cloud platform.
@@ -44,7 +44,7 @@ Diffusion Language Models offer unique advantages over autoregressive models:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/dfastllm.git
+git clone https://github.com/mwaykole/dfastllm.git
 cd dfastllm
 
 # Install dependencies
