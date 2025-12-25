@@ -124,6 +124,14 @@ class OpenAIServingChat:
         if not request.messages:
             raise ValueError("messages cannot be empty")
         
+        # Warn about unsupported parameters
+        if request.logit_bias:
+            logger.warning("logit_bias is not yet supported and will be ignored")
+        if request.functions or request.function_call:
+            logger.warning("function calling is not yet supported and will be ignored")
+        if request.tools or request.tool_choice:
+            logger.warning("tool calling is not yet supported and will be ignored")
+        
         # Validate model
         if request.model not in self.served_model_names:
             logger.warning(
@@ -178,10 +186,15 @@ class OpenAIServingChat:
         # Generate for each n
         for n_idx in range(sampling_params.n):
             try:
+                # Clone params and adjust seed for diversity in n>1 case
+                params_for_generation = sampling_params.clone()
+                if params_for_generation.seed is not None and n_idx > 0:
+                    params_for_generation.seed = sampling_params.seed + n_idx
+                
                 # Generate completion
                 output = await self.engine.generate_async(
                     prompt=prompt,
-                    sampling_params=sampling_params,
+                    sampling_params=params_for_generation,
                     request_id=f"{request_id}-{n_idx}",
                 )
                 

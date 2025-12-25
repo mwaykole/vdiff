@@ -176,7 +176,7 @@ class RequestQueue:
                 params=params,
                 priority=priority,
                 state=RequestState.QUEUED,
-                future=asyncio.get_event_loop().create_future(),
+                future=asyncio.get_running_loop().create_future(),
             )
             
             self._queue.append(request)

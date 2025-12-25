@@ -704,7 +704,7 @@ class DFastLLMEngine:
         async with self._request_semaphore:
             try:
                 # Run generation in thread pool
-                loop = asyncio.get_event_loop()
+                loop = asyncio.get_running_loop()
                 result = await asyncio.wait_for(
                     loop.run_in_executor(
                         self._executor,

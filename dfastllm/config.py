@@ -131,12 +131,29 @@ class DFastLLMConfig:
         if self.request_timeout <= 0:
             raise ValueError(f"request_timeout must be > 0, got {self.request_timeout}")
     
+    @staticmethod
+    def _safe_int(value: str, default: int) -> int:
+        """Safely parse integer from string."""
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return default
+    
+    @staticmethod
+    def _safe_float(value: str, default: float) -> float:
+        """Safely parse float from string."""
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
     @classmethod
     def from_env(cls) -> "DFastLLMConfig":
         """Create configuration from environment variables.
         
         Environment variables use VDIFF_ prefix for consistency.
         Falls back to common environment variables for compatibility.
+        Invalid values fall back to defaults.
         
         Returns:
             DFastLLMConfig instance populated from environment.
@@ -145,27 +162,27 @@ class DFastLLMConfig:
             model=os.getenv("VDIFF_MODEL", os.getenv("MODEL_NAME", "")),
             tokenizer=os.getenv("VDIFF_TOKENIZER"),
             revision=os.getenv("VDIFF_REVISION"),
-            max_model_len=int(os.getenv("VDIFF_MAX_MODEL_LEN", "4096")),
+            max_model_len=cls._safe_int(os.getenv("VDIFF_MAX_MODEL_LEN", "4096"), 4096),
             dtype=os.getenv("VDIFF_DTYPE", "auto"),
             trust_remote_code=os.getenv("VDIFF_TRUST_REMOTE_CODE", "").lower() == "true",
             host=os.getenv("VDIFF_HOST", "0.0.0.0"),
-            port=int(os.getenv("VDIFF_PORT", os.getenv("PORT", "8000"))),
+            port=cls._safe_int(os.getenv("VDIFF_PORT", os.getenv("PORT", "8000")), 8000),
             api_key=os.getenv("VDIFF_API_KEY"),
-            tensor_parallel_size=int(os.getenv("VDIFF_TENSOR_PARALLEL_SIZE", "1")),
-            gpu_memory_utilization=float(os.getenv("VDIFF_GPU_MEMORY_UTILIZATION", "0.9")),
-            max_num_seqs=int(os.getenv("VDIFF_MAX_NUM_SEQS", "256")),
-            max_num_batched_tokens=int(os.getenv("VDIFF_MAX_NUM_BATCHED_TOKENS", "4096")),
-            diffusion_steps=int(os.getenv("VDIFF_DIFFUSION_STEPS", "64")),
-            block_size=int(os.getenv("VDIFF_BLOCK_SIZE", "32")),
+            tensor_parallel_size=cls._safe_int(os.getenv("VDIFF_TENSOR_PARALLEL_SIZE", "1"), 1),
+            gpu_memory_utilization=cls._safe_float(os.getenv("VDIFF_GPU_MEMORY_UTILIZATION", "0.9"), 0.9),
+            max_num_seqs=cls._safe_int(os.getenv("VDIFF_MAX_NUM_SEQS", "256"), 256),
+            max_num_batched_tokens=cls._safe_int(os.getenv("VDIFF_MAX_NUM_BATCHED_TOKENS", "4096"), 4096),
+            diffusion_steps=cls._safe_int(os.getenv("VDIFF_DIFFUSION_STEPS", "64"), 64),
+            block_size=cls._safe_int(os.getenv("VDIFF_BLOCK_SIZE", "32"), 32),
             enable_apd=os.getenv("VDIFF_ENABLE_APD", "true").lower() == "true",
-            apd_max_parallel=int(os.getenv("VDIFF_APD_MAX_PARALLEL", "8")),
-            apd_threshold=float(os.getenv("VDIFF_APD_THRESHOLD", "0.3")),
-            max_concurrent_requests=int(os.getenv("VDIFF_MAX_CONCURRENT", "4")),
-            max_queue_size=int(os.getenv("VDIFF_MAX_QUEUE_SIZE", "256")),
-            request_timeout=float(os.getenv("VDIFF_REQUEST_TIMEOUT", "300")),
-            rate_limit_requests=int(os.getenv("VDIFF_RATE_LIMIT_REQUESTS", "100")),
-            rate_limit_window=int(os.getenv("VDIFF_RATE_LIMIT_WINDOW", "60")),
-            workers=int(os.getenv("VDIFF_WORKERS", "1")),
+            apd_max_parallel=cls._safe_int(os.getenv("VDIFF_APD_MAX_PARALLEL", "8"), 8),
+            apd_threshold=cls._safe_float(os.getenv("VDIFF_APD_THRESHOLD", "0.3"), 0.3),
+            max_concurrent_requests=cls._safe_int(os.getenv("VDIFF_MAX_CONCURRENT", "4"), 4),
+            max_queue_size=cls._safe_int(os.getenv("VDIFF_MAX_QUEUE_SIZE", "256"), 256),
+            request_timeout=cls._safe_float(os.getenv("VDIFF_REQUEST_TIMEOUT", "300"), 300.0),
+            rate_limit_requests=cls._safe_int(os.getenv("VDIFF_RATE_LIMIT_REQUESTS", "100"), 100),
+            rate_limit_window=cls._safe_int(os.getenv("VDIFF_RATE_LIMIT_WINDOW", "60"), 60),
+            workers=cls._safe_int(os.getenv("VDIFF_WORKERS", "1"), 1),
             compile_model=os.getenv("VDIFF_COMPILE", "true").lower() == "true",
             compile_mode=os.getenv("VDIFF_COMPILE_MODE", "reduce-overhead"),
             use_flash_attention=os.getenv("VDIFF_FLASH_ATTENTION", "true").lower() == "true",
@@ -173,10 +190,10 @@ class DFastLLMConfig:
             use_4bit=os.getenv("VDIFF_USE_4BIT", "false").lower() == "true",
             use_mixed_precision=os.getenv("VDIFF_MIXED_PRECISION", "true").lower() == "true",
             use_adaptive_steps=os.getenv("VDIFF_ADAPTIVE_STEPS", "true").lower() == "true",
-            confidence_threshold=float(os.getenv("VDIFF_CONFIDENCE_THRESHOLD", "0.95")),
+            confidence_threshold=cls._safe_float(os.getenv("VDIFF_CONFIDENCE_THRESHOLD", "0.95"), 0.95),
             enable_early_stopping=os.getenv("VDIFF_EARLY_STOPPING", "true").lower() == "true",
             use_attention_cache=os.getenv("VDIFF_ATTENTION_CACHE", "false").lower() == "true",
-            attention_cache_interval=int(os.getenv("VDIFF_ATTENTION_CACHE_INTERVAL", "4")),
+            attention_cache_interval=cls._safe_int(os.getenv("VDIFF_ATTENTION_CACHE_INTERVAL", "4"), 4),
             use_dynamic_quantization=os.getenv("VDIFF_DYNAMIC_QUANT", "false").lower() == "true",
         )
     
