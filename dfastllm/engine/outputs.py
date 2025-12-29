@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 import time
 
-
 @dataclass
 class CompletionOutput:
     """Output for a single completion sequence.
@@ -45,7 +44,6 @@ class CompletionOutput:
             f"token_ids={self.token_ids}, "
             f"finish_reason={self.finish_reason!r})"
         )
-
 
 @dataclass
 class RequestMetrics:
@@ -117,7 +115,6 @@ class RequestMetrics:
             "kv_cache_hit_rate": self.kv_cache_hit_rate,
         }
 
-
 @dataclass
 class RequestOutput:
     """Output for a single request.
@@ -155,7 +152,6 @@ class RequestOutput:
             f"finished={self.finished})"
         )
 
-
 @dataclass
 class EmbeddingOutput:
     """Output for embedding requests.
@@ -165,7 +161,6 @@ class EmbeddingOutput:
     
     embedding: List[float] = field(default_factory=list)
     index: int = 0
-
 
 @dataclass
 class EmbeddingRequestOutput:

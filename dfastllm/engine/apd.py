@@ -23,7 +23,6 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch not available, APD disabled")
 
-
 @dataclass
 class APDConfig:
     """Configuration for Adaptive Parallel Decoding."""
@@ -42,7 +41,6 @@ class APDConfig:
         if not 0.0 <= self.acceptance_threshold <= 1.0:
             raise ValueError("acceptance_threshold must be in [0, 1]")
 
-
 @dataclass
 class APDStats:
     """Statistics for APD decoding."""
@@ -60,7 +58,6 @@ class APDStats:
         self.total_tokens_generated = self.tokens_accepted
         if self.total_steps > 0:
             self.avg_tokens_per_step = self.tokens_accepted / self.total_steps
-
 
 class APDDecoder:
     """Adaptive Parallel Decoder for Diffusion LLMs.
@@ -351,7 +348,6 @@ class APDDecoder:
     def reset_stats(self):
         """Reset statistics."""
         self.stats = APDStats()
-
 
 def apd_generate(
     model: Any,

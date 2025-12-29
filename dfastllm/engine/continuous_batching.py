@@ -39,14 +39,12 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
 
-
 class RequestPriority(Enum):
     """Request priority levels for scheduling."""
     LOW = 0
     NORMAL = 1
     HIGH = 2
     CRITICAL = 3
-
 
 def _create_future() -> Optional[asyncio.Future]:
     """Create a future if an event loop is available."""
@@ -55,7 +53,6 @@ def _create_future() -> Optional[asyncio.Future]:
         return loop.create_future()
     except RuntimeError:
         return None
-
 
 @dataclass
 class BatchedRequest:
@@ -76,7 +73,6 @@ class BatchedRequest:
             return self.priority.value > other.priority.value
         return self.arrival_time < other.arrival_time
 
-
 @dataclass
 class BatchResult:
     """Result for a single request in a batch."""
@@ -87,7 +83,6 @@ class BatchResult:
     prompt_tokens: int = 0
     generated_tokens: int = 0
     latency_ms: float = 0.0
-
 
 @dataclass
 class BatcherConfig(BaseConfig):
@@ -111,7 +106,6 @@ class BatcherConfig(BaseConfig):
             raise ValueError("max_batch_size must be >= 1")
         if self.max_wait_time_ms <= 0:
             raise ValueError("max_wait_time_ms must be > 0")
-
 
 @dataclass
 class BatcherStats(BaseStats):
@@ -138,7 +132,6 @@ class BatcherStats(BaseStats):
             "max_batch_size_seen": self.max_batch_size_seen,
             "tokens_per_second": round(self.tokens_per_second, 2),
         }
-
 
 class RequestBatcher:
     """Collects and batches requests for efficient GPU processing.
@@ -229,7 +222,6 @@ class RequestBatcher:
     def get_stats(self) -> Dict[str, Any]:
         """Get batcher statistics."""
         return self._stats.to_dict()
-
 
 class BatchedDiffusionGenerator:
     """Batched generation for diffusion language models.
@@ -393,7 +385,6 @@ class BatchedDiffusionGenerator:
         
         return results
 
-
 class ContinuousBatchingScheduler:
     """Scheduler for continuous batching with diffusion models.
     
@@ -555,7 +546,6 @@ class ContinuousBatchingScheduler:
         })
         return stats
 
-
 class PrefixCache(BaseCache):
     """Cache for common prompt prefixes to avoid recomputation.
     
@@ -611,7 +601,6 @@ class PrefixCache(BaseCache):
     def get_hit_rate(self) -> float:
         """Get cache hit rate (alias for hit_rate property)."""
         return self.hit_rate
-
 
 def create_continuous_batching_engine(
     model: Any,

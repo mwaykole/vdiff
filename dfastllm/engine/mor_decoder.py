@@ -31,14 +31,12 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch not available, MoR disabled")
 
-
 class RouterStrategy(Enum):
     """Strategy for determining recursion depth per token."""
     CONFIDENCE = "confidence"
     ENTROPY = "entropy"
     GRADIENT = "gradient"
     FIXED = "fixed"
-
 
 @dataclass
 class MoRConfig:
@@ -76,7 +74,6 @@ class MoRConfig:
             raise ValueError("difficulty_threshold_low must be in [0, 1]")
         if not 0 <= self.difficulty_threshold_high <= 1:
             raise ValueError("difficulty_threshold_high must be in [0, 1]")
-
 
 @dataclass
 class MoRStats:
@@ -143,7 +140,6 @@ class MoRStats:
         self.total_recursions = 0
         self.compute_saved_pct = 0.0
         self.avg_recursions_per_token = 0.0
-
 
 class MoRDecoder:
     """Mixture of Recursions decoder for diffusion LLMs.
@@ -496,7 +492,6 @@ class MoRDecoder:
         """Reset MoR statistics."""
         self.stats.reset()
 
-
 @torch.no_grad()
 def mor_diffusion_generate(
     model,
@@ -691,7 +686,6 @@ def mor_diffusion_generate(
             x = torch.where(transfer_index, x0, x)
     
     return x, mor.stats
-
 
 class MoRDiffusionSampler:
     """High-level MoR-enhanced diffusion sampler.

@@ -1,27 +1,10 @@
-"""Base classes and interfaces for dfastllm engine components.
-
-This module provides abstract base classes and protocols following SOLID principles:
-- Single Responsibility: Each class has one clear purpose
-- Open/Closed: Base classes are open for extension, closed for modification
-- Liskov Substitution: Derived classes are fully substitutable
-- Interface Segregation: Small, focused interfaces
-- Dependency Inversion: Depend on abstractions, not concrete implementations
-
-Usage:
-    All engine components should inherit from these base classes to ensure
-    consistency and enable polymorphic usage throughout the codebase.
-"""
+"""Base classes for dfastllm engine components (SOLID principles)."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, asdict
 from typing import Dict, Any, Optional, Protocol, runtime_checkable
 from enum import Enum
 import time
-
-
-# ============================================================================
-# Base Statistics Classes (Single Responsibility + Liskov Substitution)
-# ============================================================================
 
 @dataclass
 class BaseStats:
@@ -43,7 +26,6 @@ class BaseStats:
             elif field_def.default_factory is not None:
                 setattr(self, field_name, field_def.default_factory())
 
-
 @dataclass
 class TimedStats(BaseStats):
     """Statistics with timing information."""
@@ -56,11 +38,6 @@ class TimedStats(BaseStats):
         self.total_time_ms += time_ms
         self.count += 1
         self.avg_time_ms = self.total_time_ms / self.count if self.count > 0 else 0.0
-
-
-# ============================================================================
-# Base Configuration Classes (Open/Closed Principle)
-# ============================================================================
 
 @dataclass
 class BaseConfig:
@@ -89,11 +66,6 @@ class BaseConfig:
         """Create configuration from dictionary."""
         return cls(**data)
 
-
-# ============================================================================
-# Protocol Interfaces (Interface Segregation + Dependency Inversion)
-# ============================================================================
-
 @runtime_checkable
 class Generator(Protocol):
     """Protocol for text generation components."""
@@ -108,7 +80,6 @@ class Generator(Protocol):
         """Generate new tokens from input."""
         ...
 
-
 @runtime_checkable
 class Configurable(Protocol):
     """Protocol for components with configuration."""
@@ -117,7 +88,6 @@ class Configurable(Protocol):
     def config(self) -> BaseConfig:
         """Get component configuration."""
         ...
-
 
 @runtime_checkable
 class HasStats(Protocol):
@@ -130,7 +100,6 @@ class HasStats(Protocol):
     def reset_stats(self) -> None:
         """Reset statistics to initial values."""
         ...
-
 
 @runtime_checkable
 class Cacheable(Protocol):
@@ -147,11 +116,6 @@ class Cacheable(Protocol):
     def clear(self) -> None:
         """Clear the cache."""
         ...
-
-
-# ============================================================================
-# Abstract Base Classes (Template Method Pattern)
-# ============================================================================
 
 class BaseController(ABC):
     """Abstract base class for adaptive controllers.
@@ -176,7 +140,6 @@ class BaseController(ABC):
     def get_recommendation(self) -> Dict[str, Any]:
         """Get current parameter recommendations."""
         pass
-
 
 class BaseCache(ABC):
     """Abstract base class for caching implementations.
@@ -237,11 +200,6 @@ class BaseCache(ABC):
             "hit_rate": round(self.hit_rate, 4),
         }
 
-
-# ============================================================================
-# Utility Classes (Single Responsibility)
-# ============================================================================
-
 class EntropyComputer:
     """Unified entropy computation utility.
     
@@ -295,7 +253,6 @@ class EntropyComputer:
         top_k_logits, _ = torch.topk(logits, min(k, logits.shape[dim]), dim=dim)
         return EntropyComputer.compute(top_k_logits, dim)
 
-
 class ConfidenceComputer:
     """Unified confidence score computation."""
     
@@ -320,11 +277,6 @@ class ConfidenceComputer:
             return 1.0 - entropy / max_entropy
         
         return 1.0 - torch.clamp(entropy / max_entropy, 0.0, 1.0)
-
-
-# ============================================================================
-# Factory Functions (Dependency Inversion)
-# ============================================================================
 
 def create_stats(stats_type: str, **kwargs) -> BaseStats:
     """Factory function to create statistics objects."""

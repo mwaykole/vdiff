@@ -21,7 +21,6 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch not available")
 
-
 @dataclass
 class AdaptiveStepConfig:
     """Configuration for adaptive step scheduling."""
@@ -40,7 +39,6 @@ class AdaptiveStepConfig:
             raise ValueError("max_steps must be >= min_steps")
         if not 0.0 <= self.confidence_threshold <= 1.0:
             raise ValueError("confidence_threshold must be in [0, 1]")
-
 
 @dataclass
 class StepStats:
@@ -63,7 +61,6 @@ class StepStats:
         if total == 0:
             return 0.0
         return (self.total_steps_saved / total) * 100
-
 
 class AdaptiveStepScheduler:
     """Adaptively reduce diffusion steps based on generation confidence.
@@ -269,7 +266,6 @@ class AdaptiveStepScheduler:
             "avg_confidence_at_stop": self._stats.avg_confidence_at_stop,
         }
 
-
 def compute_optimal_block_length(gen_length: int, max_block: int = 32) -> Tuple[int, int]:
     """Compute optimal block length for semi-autoregressive generation.
     
@@ -288,6 +284,4 @@ def compute_optimal_block_length(gen_length: int, max_block: int = 32) -> Tuple[
             return block_len, gen_length // block_len
     
     return gen_length, 1
-
-
 

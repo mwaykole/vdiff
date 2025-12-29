@@ -20,7 +20,6 @@ import threading
 
 logger = logging.getLogger(__name__)
 
-
 class RequestState(Enum):
     """Request lifecycle states."""
     PENDING = "pending"
@@ -30,7 +29,6 @@ class RequestState(Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
     TIMEOUT = "timeout"
-
 
 @dataclass
 class QueuedRequest:
@@ -63,7 +61,6 @@ class QueuedRequest:
             return time.time() - self.started_at
         return 0.0
 
-
 @dataclass
 class QueueStats:
     """Queue statistics for monitoring."""
@@ -90,7 +87,6 @@ class QueueStats:
         if len(self._processing_times) > 1000:
             self._processing_times = self._processing_times[-1000:]
         self.avg_processing_time_ms = sum(self._processing_times) / len(self._processing_times)
-
 
 class RequestQueue:
     """Production-ready async request queue.

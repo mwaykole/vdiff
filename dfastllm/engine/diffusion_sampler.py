@@ -30,7 +30,6 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch not available")
 
-
 @dataclass
 class DiffusionSamplerConfig:
     """Configuration for diffusion sampling.
@@ -63,7 +62,6 @@ class DiffusionSamplerConfig:
     mor_confidence_high: float = 0.9  # Above this = skip extra recursions
     mor_confidence_low: float = 0.5  # Below this = apply max recursions
 
-
 @torch.no_grad()
 def add_gumbel_noise(
     logits: "torch.Tensor",
@@ -95,7 +93,6 @@ def add_gumbel_noise(
     gumbel_noise = (-torch.log(noise)) ** temperature
     return logits.exp() / gumbel_noise
 
-
 @torch.no_grad()
 def get_num_transfer_tokens(
     mask_index: "torch.Tensor",
@@ -123,7 +120,6 @@ def get_num_transfer_tokens(
     num_transfer_tokens = base + (step_indices < remainder).long()
     
     return num_transfer_tokens
-
 
 @torch.no_grad()
 def _vectorized_topk_unmask(
@@ -169,7 +165,6 @@ def _vectorized_topk_unmask(
     transfer_index[valid_batch_indices, valid_top_indices] = True
     
     return transfer_index
-
 
 @torch.no_grad()
 def _apply_mor_refinement(
@@ -292,7 +287,6 @@ def _apply_mor_refinement(
                 )
     
     return refined_logits
-
 
 @torch.no_grad()
 def diffusion_generate(
@@ -531,7 +525,6 @@ def diffusion_generate(
     
     return x
 
-
 class DiffusionSampler:
     """High-level diffusion sampler for serving.
     
@@ -650,7 +643,6 @@ class DiffusionSampler:
             output_ids[prompt_length:],
             skip_special_tokens=skip_special_tokens
         )
-
 
 def is_diffusion_model(model_name: str) -> bool:
     """Check if a model is a diffusion LLM based on name."""

@@ -80,7 +80,6 @@ try:
 except ImportError:
     logger.info("TextIteratorStreamer not available, using fallback streaming")
 
-
 class EngineState(Enum):
     """Engine lifecycle states."""
     UNINITIALIZED = "uninitialized"
@@ -91,31 +90,25 @@ class EngineState(Enum):
     SHUTDOWN = "shutdown"
     ERROR = "error"
 
-
 class EngineError(Exception):
     """Base exception for engine errors."""
     pass
-
 
 class ModelLoadError(EngineError):
     """Raised when model loading fails."""
     pass
 
-
 class GenerationError(EngineError):
     """Raised when text generation fails."""
     pass
-
 
 class TimeoutError(EngineError):
     """Raised when request times out."""
     pass
 
-
 class QueueFullError(EngineError):
     """Raised when request queue is full."""
     pass
-
 
 @dataclass
 class EngineStats:
@@ -144,7 +137,6 @@ class EngineStats:
             "current_queue_size": self.current_queue_size,
             "uptime_seconds": time.time() - self.start_time,
         }
-
 
 @dataclass
 class HealthStatus:
@@ -180,7 +172,6 @@ class HealthStatus:
         if self.last_error:
             result["last_error"] = self.last_error
         return result
-
 
 class DFastLLMEngine:
     """Production-ready inference engine for diffusion language models.
@@ -1299,7 +1290,6 @@ class DFastLLMEngine:
         gc.collect()
         logger.info("Engine shutdown complete")
 
-
 class MockModel:
     """Mock model for testing without PyTorch."""
     
@@ -1309,7 +1299,6 @@ class MockModel:
     
     def __call__(self, *args, **kwargs):
         return type("Output", (), {"logits": None})()
-
 
 class AsyncDFastLLMEngine:
     """Production-ready async engine with request queue and lifecycle management.

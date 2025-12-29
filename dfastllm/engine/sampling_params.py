@@ -6,7 +6,6 @@ Matches vLLM's SamplingParams exactly while adding diffusion-specific options.
 from dataclasses import dataclass, field
 from typing import Optional, Union, List
 
-
 @dataclass
 class SamplingParams:
     """Sampling parameters for text generation.

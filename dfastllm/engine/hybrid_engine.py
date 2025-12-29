@@ -34,14 +34,12 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch not available, hybrid engine disabled")
 
-
 class HybridMode(Enum):
     """Available hybrid generation modes."""
     DEER = "deer"  # Draft with Diffusion, Verify with AR
     SPEC_DIFF = "spec_diff"  # Speculative Diffusion Decoding
     SEMI_AR = "semi_ar"  # Semi-autoregressive block generation
     ADAPTIVE = "adaptive"  # Dynamically choose based on context
-
 
 @dataclass
 class HybridConfig(BaseConfig):
@@ -90,7 +88,6 @@ class HybridConfig(BaseConfig):
             raise ValueError("draft_block_size must be >= 1")
         if not 0.0 <= self.acceptance_threshold <= 1.0:
             raise ValueError("acceptance_threshold must be in [0, 1]")
-
 
 @dataclass
 class HybridStats(BaseStats):
@@ -161,7 +158,6 @@ class HybridStats(BaseStats):
     def reset(self):
         """Reset all statistics."""
         self.__init__()
-
 
 class HybridEngine:
     """DEER-style Hybrid Engine: Draft with Diffusion, Verify with AR.
@@ -541,7 +537,6 @@ class HybridEngine:
         """Reset statistics."""
         self.stats.reset()
 
-
 class SpecDiffEngine(HybridEngine):
     """Speculative Diffusion Decoding Engine.
     
@@ -618,7 +613,6 @@ class SpecDiffEngine(HybridEngine):
         
         return draft_tokens, final_confidence
 
-
 class SemiAREngine(HybridEngine):
     """Semi-Autoregressive Hybrid Engine.
     
@@ -693,7 +687,6 @@ class SemiAREngine(HybridEngine):
         
         return refined
 
-
 def create_hybrid_engine(
     diffusion_model,
     ar_model: Optional[Any] = None,
@@ -742,7 +735,6 @@ def create_hybrid_engine(
         config=config,
         mask_id=mask_id,
     )
-
 
 @torch.no_grad()
 def hybrid_generate(

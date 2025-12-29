@@ -26,7 +26,6 @@ except ImportError:
     QUANTIZATION_AVAILABLE = False
     logger.warning("PyTorch quantization not available")
 
-
 @dataclass
 class QuantizationConfig:
     """Configuration for model quantization."""
@@ -39,7 +38,6 @@ class QuantizationConfig:
     def __post_init__(self):
         if self.dtype not in ("int8", "int4", "fp16", "bf16"):
             raise ValueError(f"Unsupported quantization dtype: {self.dtype}")
-
 
 class ModelQuantizer:
     """Apply quantization to diffusion models.
@@ -185,7 +183,6 @@ class ModelQuantizer:
             "compression_ratio": self._original_size / max(self._quantized_size, 1),
         }
 
-
 def estimate_memory_savings(model: nn.Module, target_dtype: str = "int8") -> Dict[str, float]:
     """Estimate memory savings from quantization.
     
@@ -230,6 +227,4 @@ def estimate_memory_savings(model: nn.Module, target_dtype: str = "int8") -> Dic
         "estimated_savings_gb": estimated_savings / 1e9,
         "linear_params_millions": linear_params / 1e6,
     }
-
-
 

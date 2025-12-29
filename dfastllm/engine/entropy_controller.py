@@ -32,14 +32,12 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
 
-
 class AdaptationStrategy(Enum):
     """Strategy for adapting generation parameters."""
     DRAFT_LENGTH = "draft_length"
     DIFFUSION_STEPS = "diffusion_steps"
     TEMPERATURE = "temperature"
     COMBINED = "combined"
-
 
 @dataclass
 class EntropyConfig(BaseConfig):
@@ -64,7 +62,6 @@ class EntropyConfig(BaseConfig):
             raise ValueError("high_entropy_threshold must be > low_entropy_threshold")
         if self.min_draft_length > self.max_draft_length:
             raise ValueError("min_draft_length must be <= max_draft_length")
-
 
 @dataclass
 class EntropyStats(BaseStats):
@@ -92,10 +89,8 @@ class EntropyStats(BaseStats):
             "compute_saved_pct": round(self.compute_saved_pct, 2),
         }
 
-
 # Use unified EntropyComputer from base module
 EntropyCalculator = EntropyComputer  # Alias for backward compatibility
-
 
 class EntropyAdaptiveController:
     """Controller that adapts generation parameters based on entropy.
@@ -279,7 +274,6 @@ class EntropyAdaptiveController:
         self._baseline_compute = 0.0
         self._actual_compute = 0.0
 
-
 class EntropyAwareDraftController:
     """Draft length controller with entropy awareness.
     
@@ -352,7 +346,6 @@ class EntropyAwareDraftController:
     def get_draft_length(self) -> int:
         """Get current recommended draft length."""
         return self.current_length
-
 
 def create_entropy_controller(
     strategy: str = "combined",

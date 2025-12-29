@@ -21,7 +21,6 @@ except ImportError:
     TORCH_AVAILABLE = False
     logger.warning("PyTorch not available")
 
-
 @dataclass
 class AttentionCacheConfig:
     """Configuration for attention caching."""
@@ -34,7 +33,6 @@ class AttentionCacheConfig:
     def __post_init__(self):
         if self.cache_interval < 1:
             raise ValueError("cache_interval must be >= 1")
-
 
 class AttentionCache:
     """Cache attention maps between diffusion steps.
@@ -185,7 +183,6 @@ class AttentionCache:
             "hit_rate": self.hit_rate,
         }
 
-
 class CachedAttentionWrapper(nn.Module):
     """Wrapper that adds caching to attention layers.
     
@@ -236,6 +233,4 @@ class CachedAttentionWrapper(nn.Module):
                 output = self.attention(*args, **kwargs)
                 self.cache.update(self.layer_idx, output)
                 return output
-
-
 
