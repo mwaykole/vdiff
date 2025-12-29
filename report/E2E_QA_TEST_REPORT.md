@@ -242,9 +242,64 @@ HF_HOME: "/tmp/hf_cache"
 
 ---
 
+## Comprehensive LLM Inference Test Suite
+
+**Test Date:** Mon Dec 29 11:31:47 UTC 2025  
+**GPU:** NVIDIA L40S (46GB)  
+**Test Duration:** 21.2 seconds
+
+### Complete Test Results: 40/40 PASSED ✅
+
+| Category | Tests | Status |
+|----------|-------|--------|
+| SOLID Architecture | 5/5 | ✅ 100% |
+| Hybrid Engine | 4/4 | ✅ 100% |
+| Entropy Controller | 3/3 | ✅ 100% |
+| Continuous Batching | 4/4 | ✅ 100% |
+| Model Loading | 2/2 | ✅ 100% |
+| Generation Tests | 7/7 | ✅ 100% |
+| Performance Benchmarks | 3/3 | ✅ 100% |
+| Edge Cases | 5/5 | ✅ 100% |
+| MoR (Mixture of Recursions) | 3/3 | ✅ 100% |
+| APD (Adaptive Parallel Decoding) | 2/2 | ✅ 100% |
+| Diffusion Sampler | 2/2 | ✅ 100% |
+
+### Test Categories Covered
+
+#### Functional Tests
+- ✅ Basic text generation
+- ✅ Deterministic generation (temperature=0)
+- ✅ Creative generation (temperature=1.5)
+- ✅ Max tokens limit enforcement
+- ✅ Empty prompt handling
+- ✅ Unicode/Emoji handling
+- ✅ Long prompt processing (1000+ chars)
+
+#### Performance Tests
+- ✅ Throughput benchmark
+- ✅ Latency (TTFT) measurement
+- ✅ GPU memory usage tracking
+
+#### Edge Cases
+- ✅ Special tokens (`<|endoftext|>`)
+- ✅ Repeated tokens
+- ✅ Code generation
+- ✅ Math prompts
+- ✅ Multilingual (French, Spanish, German)
+
+#### Hybrid Engine Components
+- ✅ HybridStats tracking (77.78% acceptance rate)
+- ✅ HybridConfig modes (DEER, SPEC_DIFF, SEMI_AR, ADAPTIVE)
+- ✅ Entropy-adaptive control
+- ✅ MoR routing configuration
+- ✅ APD configuration
+- ✅ Prefix cache with LRU eviction
+
+---
+
 ### Known Limitations
 
-1. E2E tests require a running server (`DFASTLLM_TEST_URL`)
+1. E2E API tests require a running server (`DFASTLLM_TEST_URL`)
 2. Container images may have `HF_HUB_OFFLINE=1` - override with env var
 
 ---
