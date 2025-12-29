@@ -19,6 +19,7 @@ def cmd_serve(args):
     cmd_args = [
         sys.executable, "-m", "dfastllm.entrypoints.openai.api_server",
         "--model", args.model,
+        "--host", args.host,
         "--port", str(args.port),
     ]
     
@@ -30,8 +31,9 @@ def cmd_serve(args):
     
     print(f"🚀 Starting dfastllm server...")
     print(f"   Model: {args.model}")
+    print(f"   Host: {args.host}")
     print(f"   Port: {args.port}")
-    print(f"   URL: http://localhost:{args.port}")
+    print(f"   URL: http://{args.host}:{args.port}")
     print("")
     
     os.execvp(sys.executable, cmd_args)
@@ -137,6 +139,7 @@ For more info: https://github.com/mwaykole/dfastllm
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Start the server")
     serve_parser.add_argument("--model", "-m", required=True, help="Model name or path")
+    serve_parser.add_argument("--host", "-H", default="0.0.0.0", help="Host to bind to (default: 0.0.0.0)")
     serve_parser.add_argument("--port", "-p", type=int, default=8000, help="Port (default: 8000)")
     serve_parser.add_argument("--trust-remote-code", action="store_true", help="Trust remote code")
     serve_parser.add_argument("--enable-apd", action="store_true", help="Enable APD")

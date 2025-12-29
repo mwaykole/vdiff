@@ -121,7 +121,7 @@ spec:
           echo ""
           echo "=== Starting dfastllm Server ==="
           cd /tmp/dfastllm_pkg
-          python3 -m dfastllm.cli serve --host 0.0.0.0 --port 8000 --model \${VDIFF_MODEL}
+          python3 -m dfastllm.cli serve --port 8000 --model \${VDIFF_MODEL} --trust-remote-code --enable-apd
         envFrom:
         - configMapRef:
             name: dfastllm-solid-config
