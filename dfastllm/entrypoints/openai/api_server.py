@@ -112,14 +112,14 @@ class RateLimiter:
     async def get_remaining(self, client_id: str) -> int:
         """Get remaining requests for client (thread-safe)."""
         async with self._lock:
-        now = time.time()
-        cutoff = now - self.window_seconds
-        
-        if client_id not in self._requests:
-            return self.max_requests
-        
-        valid_requests = [t for t in self._requests[client_id] if t > cutoff]
-        return max(0, self.max_requests - len(valid_requests))
+            now = time.time()
+            cutoff = now - self.window_seconds
+            
+            if client_id not in self._requests:
+                return self.max_requests
+            
+            valid_requests = [t for t in self._requests[client_id] if t > cutoff]
+            return max(0, self.max_requests - len(valid_requests))
 
 
 class ServerState:
