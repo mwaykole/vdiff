@@ -54,6 +54,13 @@ from dfastllm.engine.mor_decoder import (
     mor_diffusion_generate,
     RouterStrategy,
 )
+from dfastllm.engine.hybrid_engine import (
+    HybridEngine,
+    HybridConfig,
+    HybridMode,
+    HybridStats,
+    create_hybrid_engine,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -231,6 +238,8 @@ class DFastLLMEngine:
         # Diffusion components
         self._diffusion_sampler: Optional[DiffusionSampler] = None
         self._apd_decoder: Optional[APDDecoder] = None
+        self._hybrid_engine: Optional[HybridEngine] = None
+        self._ar_verifier = None
         self._is_diffusion_model = False
         self._mask_id = 126336  # Default LLaDA mask ID
         
@@ -490,6 +499,79 @@ class DFastLLMEngine:
             f"Diffusion sampler initialized: mask_id={self._mask_id}, "
             f"mixed_precision={sampler_config.use_mixed_precision}, "
             f"adaptive_steps={sampler_config.use_adaptive_steps}"
+        )
+        
+        # Initialize Hybrid Diffusion-AR Engine if enabled
+        # Based on DEER paper: https://czc726.github.io/DEER/
+        if getattr(self.config, 'enable_hybrid', False):
+            self._setup_hybrid_engine()
+    
+    def _setup_hybrid_engine(self) -> None:
+        """Setup hybrid diffusion-AR engine for DEER-style generation.
+        
+        Based on research papers:
+        - DEER: Draft with Diffusion, Verify with AR
+        - DiffuSpec: Speculative Decoding with Diffusion Drafters
+        - SpecDiff: Speculative Diffusion Decoding (NAACL 2025)
+        
+        Benefits: 2-7x speedup while maintaining AR-level quality.
+        """
+        ar_model_path = getattr(self.config, 'ar_verifier_model', None)
+        
+        if ar_model_path and TORCH_AVAILABLE:
+            try:
+                from transformers import AutoModelForCausalLM
+                
+                logger.info(f"Loading AR verifier model: {ar_model_path}")
+                
+                # Load smaller AR model for verification
+                dtype = torch.float16 if self._device == "cuda" else torch.float32
+                self._ar_verifier = AutoModelForCausalLM.from_pretrained(
+                    ar_model_path,
+                    torch_dtype=dtype,
+                    device_map="auto" if self._device == "cuda" else None,
+                    trust_remote_code=self.config.trust_remote_code,
+                    low_cpu_mem_usage=True,
+                )
+                
+                if self._device != "cuda":
+                    self._ar_verifier = self._ar_verifier.to(self._device)
+                
+                self._ar_verifier.eval()
+                logger.info(f"AR verifier loaded successfully: {ar_model_path}")
+                
+            except Exception as e:
+                logger.warning(f"Failed to load AR verifier model: {e}")
+                self._ar_verifier = None
+        
+        # Create hybrid configuration from main config
+        hybrid_config = HybridConfig(
+            enabled=True,
+            mode=HybridMode(getattr(self.config, 'hybrid_mode', 'deer')),
+            ar_verifier_model=ar_model_path,
+            draft_block_size=getattr(self.config, 'hybrid_draft_size', 8),
+            max_draft_tokens=getattr(self.config, 'hybrid_max_draft', 32),
+            acceptance_threshold=getattr(self.config, 'hybrid_acceptance_threshold', 0.3),
+            diffusion_weight=getattr(self.config, 'hybrid_diffusion_weight', 1.0),
+            ar_weight=getattr(self.config, 'hybrid_ar_weight', 0.5),
+            adaptive_draft_length=getattr(self.config, 'hybrid_adaptive_draft', True),
+            fallback_to_ar=getattr(self.config, 'hybrid_fallback_to_ar', True),
+            log_stats=True,
+        )
+        
+        # Create hybrid engine
+        self._hybrid_engine = create_hybrid_engine(
+            diffusion_model=self._model,
+            ar_model=self._ar_verifier,
+            tokenizer=self._tokenizer._tokenizer if self._tokenizer else None,
+            config=hybrid_config,
+            mask_id=self._mask_id,
+        )
+        
+        logger.info(
+            f"Hybrid engine initialized: mode={hybrid_config.mode.value}, "
+            f"ar_verifier={'enabled' if self._ar_verifier else 'disabled'}, "
+            f"draft_size={hybrid_config.draft_block_size}"
         )
     
     def _update_memory_stats(self) -> None:
@@ -902,13 +984,32 @@ class DFastLLMEngine:
     ) -> "torch.Tensor":
         """Diffusion-based generation using masked diffusion algorithm.
         
-        Automatically uses MoR (Mixture of Recursions) if enabled for
-        adaptive compute allocation per token.
+        Generation priority:
+        1. Hybrid (DEER/SpecDiff) if enabled - best quality + speed
+        2. MoR (Mixture of Recursions) if enabled - adaptive compute
+        3. Standard diffusion generation
+        
+        References:
+        - DEER: https://czc726.github.io/DEER/
+        - DiffuSpec: arxiv:2510.02358
         """
         if not TORCH_AVAILABLE:
             return self._standard_generate(input_ids, sampling_params)
         
         gen_length = sampling_params.max_tokens
+        
+        # Priority 1: Use hybrid engine if enabled (DEER/SpecDiff)
+        # This combines diffusion drafting with AR verification for best results
+        if self._hybrid_engine is not None:
+            logger.debug("Using hybrid diffusion-AR generation")
+            with torch.no_grad():
+                output_ids = self._hybrid_engine.generate(
+                    input_ids=input_ids,
+                    max_new_tokens=gen_length,
+                    temperature=sampling_params.temperature,
+                )
+            return output_ids
+        
         steps = min(self.config.diffusion_steps, gen_length)
         
         # Adjust block_length
@@ -921,10 +1022,11 @@ class DFastLLMEngine:
         if steps % num_blocks != 0:
             steps = max(num_blocks, (steps // num_blocks) * num_blocks)
         
-        # Use MoR-enhanced generation if enabled
+        # Priority 2: Use MoR-enhanced generation if enabled
         if getattr(self.config, 'enable_mor', True):
             return self._mor_generate(input_ids, sampling_params, steps, gen_length, block_length)
         
+        # Priority 3: Standard diffusion generation
         with torch.no_grad():
             output_ids = diffusion_generate(
                 model=self._model,
@@ -1116,6 +1218,9 @@ class DFastLLMEngine:
         
         if self._apd_decoder:
             stats["apd"] = self._apd_decoder.get_stats()
+        
+        if self._hybrid_engine:
+            stats["hybrid"] = self._hybrid_engine.get_stats()
         
         return stats
     

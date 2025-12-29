@@ -109,6 +109,19 @@ class DFastLLMConfig:
     # Dynamic quantization (native PyTorch, no bitsandbytes)
     use_dynamic_quantization: bool = False  # Apply INT8 dynamic quantization
     
+    # Hybrid Diffusion-AR Mode (DEER/DiffuSpec/SpecDiff papers)
+    # Reference: https://czc726.github.io/DEER/, arxiv:2510.02358
+    enable_hybrid: bool = False  # Enable hybrid diffusion-AR generation
+    hybrid_mode: str = "deer"  # deer, spec_diff, semi_ar, adaptive
+    ar_verifier_model: Optional[str] = None  # AR model for verification (e.g., TinyLlama)
+    hybrid_draft_size: int = 8  # Tokens to draft per diffusion step
+    hybrid_max_draft: int = 32  # Maximum tokens in single draft
+    hybrid_acceptance_threshold: float = 0.3  # Min probability for token acceptance
+    hybrid_diffusion_weight: float = 1.0  # Alpha weight for diffusion probs
+    hybrid_ar_weight: float = 0.5  # Beta weight for AR probs
+    hybrid_adaptive_draft: bool = True  # Dynamically adjust draft length
+    hybrid_fallback_to_ar: bool = True  # Fall back to AR on verification failure
+    
     def __post_init__(self):
         """Validate and set default values."""
         if self.tokenizer is None:
@@ -210,6 +223,17 @@ class DFastLLMConfig:
             mor_confidence_high=cls._safe_float(os.getenv("VDIFF_MOR_CONF_HIGH", "0.9"), 0.9),
             mor_confidence_low=cls._safe_float(os.getenv("VDIFF_MOR_CONF_LOW", "0.5"), 0.5),
             mor_strategy=os.getenv("VDIFF_MOR_STRATEGY", "confidence"),
+            # Hybrid Diffusion-AR settings
+            enable_hybrid=os.getenv("VDIFF_HYBRID_ENABLED", "false").lower() == "true",
+            hybrid_mode=os.getenv("VDIFF_HYBRID_MODE", "deer"),
+            ar_verifier_model=os.getenv("VDIFF_AR_VERIFIER_MODEL"),
+            hybrid_draft_size=cls._safe_int(os.getenv("VDIFF_HYBRID_DRAFT_SIZE", "8"), 8),
+            hybrid_max_draft=cls._safe_int(os.getenv("VDIFF_HYBRID_MAX_DRAFT", "32"), 32),
+            hybrid_acceptance_threshold=cls._safe_float(os.getenv("VDIFF_HYBRID_THRESHOLD", "0.3"), 0.3),
+            hybrid_diffusion_weight=cls._safe_float(os.getenv("VDIFF_HYBRID_DIFF_WEIGHT", "1.0"), 1.0),
+            hybrid_ar_weight=cls._safe_float(os.getenv("VDIFF_HYBRID_AR_WEIGHT", "0.5"), 0.5),
+            hybrid_adaptive_draft=os.getenv("VDIFF_HYBRID_ADAPTIVE", "true").lower() == "true",
+            hybrid_fallback_to_ar=os.getenv("VDIFF_HYBRID_FALLBACK", "true").lower() == "true",
         )
     
     def to_dict(self) -> Dict[str, Any]:
