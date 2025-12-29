@@ -1,14 +1,26 @@
 # dfastllm Documentation
 
-Welcome to **dfastllm** - a production-grade inference server for Diffusion Language Models.
+Welcome to **dfastllm** - a production-grade inference server for Hybrid Diffusion-AR Language Models.
 
 ## Overview
 
-dfastllm enables you to deploy diffusion-based language models (like LLaDA, Dream, MDLM) with the same API and deployment patterns as vLLM. This means:
+dfastllm enables you to deploy diffusion-based language models (like LLaDA, Dream, MDLM) with hybrid diffusion-autoregressive generation for optimal performance. This means:
 
 - **OpenAI-Compatible API**: Same endpoints as vLLM and OpenAI
-- **Platform Agnostic**: Deploy on any infrastructure - bare metal, Docker, Kubernetes, or cloud
-- **APD**: Adaptive Parallel Decoding for 2-4x faster inference
+- **Hybrid Generation**: DEER/SpecDiff for 2-8x faster than pure approaches
+- **SOLID Architecture**: Clean, extensible codebase following best practices
+- **Production Ready**: torch.compile, Flash Attention, continuous batching
+
+## Key Features
+
+| Feature | Benefit |
+|---------|---------|
+| Hybrid Diffusion-AR | Parallel drafting + causal verification |
+| Entropy-Adaptive Control | Dynamic parameter adjustment |
+| Continuous Batching | 5-10x throughput improvement |
+| Prefix Caching | 2-5x faster repeated prompts |
+| torch.compile | 2-4x model speedup |
+| Flash Attention 2 | 1.5-3x attention speedup |
 
 ## Architecture
 
@@ -29,12 +41,12 @@ dfastllm enables you to deploy diffusion-based language models (like LLaDA, Drea
 │   └────────┬──────────────────┬─────────────┘         │
 │            │                  │                        │
 │   ┌────────▼────────┐ ┌──────▼──────────┐             │
-│   │  Diffusion      │ │  APD Engine     │             │
-│   │  Generator      │ │  (Optimization) │             │
+│   │  Hybrid Engine  │ │  Continuous     │             │
+│   │  (DEER/SpecDiff)│ │    Batching     │             │
 │   └─────────────────┘ └─────────────────┘             │
 │                                                        │
 │   ┌─────────────────────────────────────────┐         │
-│   │         GPU / CPU Compute               │         │
+│   │   GPU • torch.compile • Flash Attn 2   │         │
 │   └─────────────────────────────────────────┘         │
 │                                                        │
 └────────────────────────────────────────────────────────┘
@@ -77,9 +89,11 @@ kubectl apply -f deploy/kubernetes/kserve/inference-service.yaml
 
 - [Quick Start](QUICK_START.md) - Get running in minutes
 - [Installation](installation.md) - Detailed setup instructions
+- [Architecture](ARCHITECTURE.md) - SOLID design and system overview
 - [API Reference](api-reference.md) - OpenAI-compatible API
 - [Configuration](configuration.md) - CLI and environment options
 - [Deployment Guide](DEPLOYMENT_GUIDE.md) - Production deployment
+- [Performance Tuning](PERFORMANCE_TUNING.md) - Optimization guide
 - [vLLM Compatibility](vllm-compatibility.md) - Migration guide
 
 ## Supported Models

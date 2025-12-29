@@ -58,6 +58,19 @@ Example - Continuous Batching:
     >>> result = await scheduler.generate("Hello world", max_tokens=64)
 """
 
+from dfastllm.engine.base import (
+    BaseStats,
+    BaseConfig,
+    BaseController,
+    BaseCache,
+    TimedStats,
+    EntropyComputer,
+    ConfidenceComputer,
+    Generator,
+    Configurable,
+    HasStats,
+    Cacheable,
+)
 from dfastllm.engine.dfastllm_engine import (
     DFastLLMEngine,
     AsyncDFastLLMEngine,
@@ -140,6 +153,19 @@ from dfastllm.engine.entropy_controller import (
 )
 
 __all__ = [
+    # Base classes (SOLID principles)
+    "BaseStats",
+    "BaseConfig",
+    "BaseController",
+    "BaseCache",
+    "TimedStats",
+    "EntropyComputer",
+    "ConfidenceComputer",
+    "Generator",
+    "Configurable",
+    "HasStats",
+    "Cacheable",
+    
     # Core engine
     "DFastLLMEngine",
     "AsyncDFastLLMEngine",

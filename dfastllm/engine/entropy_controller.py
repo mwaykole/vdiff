@@ -17,16 +17,17 @@ Benefits:
 - Automatic adaptation to content complexity
 """
 
-from typing import Optional, Tuple, List, Dict, Any
+from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
 from enum import Enum
 import logging
+
+from dfastllm.engine.base import BaseStats, BaseConfig, BaseController, EntropyComputer
 
 logger = logging.getLogger(__name__)
 
 try:
     import torch
-    import torch.nn.functional as F
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -41,9 +42,11 @@ class AdaptationStrategy(Enum):
 
 
 @dataclass
-class EntropyConfig:
-    """Configuration for entropy-adaptive control."""
-    enabled: bool = True
+class EntropyConfig(BaseConfig):
+    """Configuration for entropy-adaptive control.
+    
+    Inherits from BaseConfig for consistent validation and serialization.
+    """
     strategy: AdaptationStrategy = AdaptationStrategy.COMBINED
     high_entropy_threshold: float = 2.0
     low_entropy_threshold: float = 0.5
@@ -54,11 +57,21 @@ class EntropyConfig:
     ema_alpha: float = 0.3
     window_size: int = 16
     log_stats: bool = True
+    
+    def validate(self) -> None:
+        """Validate entropy configuration."""
+        if self.high_entropy_threshold <= self.low_entropy_threshold:
+            raise ValueError("high_entropy_threshold must be > low_entropy_threshold")
+        if self.min_draft_length > self.max_draft_length:
+            raise ValueError("min_draft_length must be <= max_draft_length")
 
 
 @dataclass
-class EntropyStats:
-    """Statistics for entropy-adaptive control."""
+class EntropyStats(BaseStats):
+    """Statistics for entropy-adaptive control.
+    
+    Inherits from BaseStats for consistent serialization.
+    """
     total_predictions: int = 0
     high_entropy_count: int = 0
     low_entropy_count: int = 0
@@ -80,73 +93,8 @@ class EntropyStats:
         }
 
 
-class EntropyCalculator:
-    """Calculates entropy from model logits."""
-    
-    @staticmethod
-    def compute_entropy(logits: "torch.Tensor", dim: int = -1) -> "torch.Tensor":
-        """Compute Shannon entropy from logits.
-        
-        Args:
-            logits: Model output logits [batch, seq, vocab]
-            dim: Dimension to compute entropy over
-        
-        Returns:
-            Entropy tensor [batch, seq]
-        """
-        if not TORCH_AVAILABLE:
-            return 0.0
-        
-        probs = F.softmax(logits, dim=dim)
-        log_probs = F.log_softmax(logits, dim=dim)
-        entropy = -torch.sum(probs * log_probs, dim=dim)
-        return entropy
-    
-    @staticmethod
-    def compute_normalized_entropy(
-        logits: "torch.Tensor",
-        dim: int = -1,
-    ) -> "torch.Tensor":
-        """Compute normalized entropy (0 to 1 scale).
-        
-        Args:
-            logits: Model output logits
-            dim: Dimension to compute entropy over
-        
-        Returns:
-            Normalized entropy [batch, seq]
-        """
-        if not TORCH_AVAILABLE:
-            return 0.0
-        
-        entropy = EntropyCalculator.compute_entropy(logits, dim)
-        vocab_size = logits.shape[dim]
-        max_entropy = torch.log(torch.tensor(vocab_size, dtype=logits.dtype, device=logits.device))
-        return entropy / max_entropy
-    
-    @staticmethod
-    def compute_top_k_entropy(
-        logits: "torch.Tensor",
-        k: int = 100,
-        dim: int = -1,
-    ) -> "torch.Tensor":
-        """Compute entropy over top-k tokens only.
-        
-        More efficient and focuses on likely tokens.
-        
-        Args:
-            logits: Model output logits
-            k: Number of top tokens to consider
-            dim: Dimension to compute entropy over
-        
-        Returns:
-            Top-k entropy [batch, seq]
-        """
-        if not TORCH_AVAILABLE:
-            return 0.0
-        
-        top_k_logits, _ = torch.topk(logits, k, dim=dim)
-        return EntropyCalculator.compute_entropy(top_k_logits, dim)
+# Use unified EntropyComputer from base module
+EntropyCalculator = EntropyComputer  # Alias for backward compatibility
 
 
 class EntropyAdaptiveController:

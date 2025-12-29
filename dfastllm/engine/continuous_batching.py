@@ -20,14 +20,15 @@ References:
 - Orca iteration-level scheduling: https://www.usenix.org/system/files/osdi22-yu.pdf
 """
 
-from typing import Optional, List, Dict, Any, Callable, Tuple
+from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 import asyncio
 import logging
 import time
 import heapq
-from collections import deque
+
+from dfastllm.engine.base import BaseStats, BaseConfig, BaseCache
 
 logger = logging.getLogger(__name__)
 
@@ -89,8 +90,11 @@ class BatchResult:
 
 
 @dataclass
-class BatcherConfig:
-    """Configuration for the request batcher."""
+class BatcherConfig(BaseConfig):
+    """Configuration for the request batcher.
+    
+    Inherits from BaseConfig for consistent validation.
+    """
     max_batch_size: int = 8
     max_wait_time_ms: float = 50.0
     max_tokens_per_batch: int = 4096
@@ -100,11 +104,21 @@ class BatcherConfig:
     decode_batch_size: int = 16
     dynamic_batch_size: bool = True
     min_batch_size: int = 1
+    
+    def validate(self) -> None:
+        """Validate batcher configuration."""
+        if self.max_batch_size < 1:
+            raise ValueError("max_batch_size must be >= 1")
+        if self.max_wait_time_ms <= 0:
+            raise ValueError("max_wait_time_ms must be > 0")
 
 
 @dataclass
-class BatcherStats:
-    """Statistics for the batcher."""
+class BatcherStats(BaseStats):
+    """Statistics for the batcher.
+    
+    Inherits from BaseStats for consistent serialization.
+    """
     total_batches: int = 0
     total_requests: int = 0
     avg_batch_size: float = 0.0
@@ -542,8 +556,10 @@ class ContinuousBatchingScheduler:
         return stats
 
 
-class PrefixCache:
+class PrefixCache(BaseCache):
     """Cache for common prompt prefixes to avoid recomputation.
+    
+    Inherits from BaseCache for consistent caching behavior with LRU eviction.
     
     Stores KV cache states for frequently used prompt prefixes,
     enabling fast initialization for requests with common prefixes.
@@ -560,13 +576,9 @@ class PrefixCache:
         min_prefix_length: int = 16,
         max_prefix_length: int = 512,
     ):
-        self.max_cache_size = max_cache_size
+        super().__init__(max_size=max_cache_size)
         self.min_prefix_length = min_prefix_length
         self.max_prefix_length = max_prefix_length
-        self._cache: Dict[int, Any] = {}
-        self._access_times: Dict[int, float] = {}
-        self._hit_count = 0
-        self._miss_count = 0
     
     def _get_prefix_hash(self, tokens: Any) -> int:
         """Compute hash for token sequence."""
@@ -580,69 +592,25 @@ class PrefixCache:
     
     def get(self, tokens: Any) -> Optional[Any]:
         """Get cached KV states for token prefix."""
-        if not TORCH_AVAILABLE:
-            return None
-        
         token_len = tokens.shape[-1] if hasattr(tokens, 'shape') else len(tokens)
         if token_len < self.min_prefix_length:
             return None
         
         prefix_hash = self._get_prefix_hash(tokens)
-        
-        if prefix_hash in self._cache:
-            self._access_times[prefix_hash] = time.time()
-            self._hit_count += 1
-            return self._cache[prefix_hash]
-        
-        self._miss_count += 1
-        return None
+        return super().get(prefix_hash)
     
     def put(self, tokens: Any, kv_cache: Any) -> None:
         """Cache KV states for token prefix."""
-        if not TORCH_AVAILABLE:
-            return
-        
         token_len = tokens.shape[-1] if hasattr(tokens, 'shape') else len(tokens)
         if token_len < self.min_prefix_length:
             return
         
-        if len(self._cache) >= self.max_cache_size:
-            self._evict_lru()
-        
         prefix_hash = self._get_prefix_hash(tokens)
-        self._cache[prefix_hash] = kv_cache
-        self._access_times[prefix_hash] = time.time()
-    
-    def _evict_lru(self) -> None:
-        """Evict least recently used entry."""
-        if not self._access_times:
-            return
-        
-        oldest_hash = min(self._access_times, key=self._access_times.get)
-        del self._cache[oldest_hash]
-        del self._access_times[oldest_hash]
+        super().put(prefix_hash, kv_cache)
     
     def get_hit_rate(self) -> float:
-        """Get cache hit rate."""
-        total = self._hit_count + self._miss_count
-        return self._hit_count / total if total > 0 else 0.0
-    
-    def get_stats(self) -> Dict[str, Any]:
-        """Get cache statistics."""
-        return {
-            "cache_size": len(self._cache),
-            "max_cache_size": self.max_cache_size,
-            "hit_count": self._hit_count,
-            "miss_count": self._miss_count,
-            "hit_rate": round(self.get_hit_rate(), 4),
-        }
-    
-    def clear(self) -> None:
-        """Clear the cache."""
-        self._cache.clear()
-        self._access_times.clear()
-        self._hit_count = 0
-        self._miss_count = 0
+        """Get cache hit rate (alias for hit_rate property)."""
+        return self.hit_rate
 
 
 def create_continuous_batching_engine(

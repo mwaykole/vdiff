@@ -297,7 +297,7 @@ class TestPrefixCache:
             max_prefix_length=512,
         )
         
-        assert cache.max_cache_size == 100
+        assert cache.max_size == 100
         assert cache.min_prefix_length == 16
     
     def test_cache_put_and_get(self):
@@ -376,9 +376,9 @@ class TestPrefixCache:
         
         stats = cache.get_stats()
         
-        assert stats["cache_size"] == 1
-        assert stats["hit_count"] == 1
-        assert stats["miss_count"] == 1
+        assert stats["size"] == 1
+        assert stats["hits"] == 1
+        assert stats["misses"] == 1
         assert stats["hit_rate"] == 0.5
     
     def test_clear_cache(self):
@@ -392,8 +392,8 @@ class TestPrefixCache:
         
         assert cache.get(tokens) is None
         stats = cache.get_stats()
-        assert stats["cache_size"] == 0
-        assert stats["hit_count"] == 0
+        assert stats["size"] == 0
+        assert stats["hits"] == 0
 
 
 class TestBatchedDiffusionGenerator:
