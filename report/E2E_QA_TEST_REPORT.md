@@ -191,15 +191,17 @@
 **Cluster:** OpenShift (AWS)  
 **GPU:** NVIDIA L40S (47.7 GB VRAM)  
 **PyTorch:** 2.6.0+cu124  
-**CUDA:** Available ✅
+**CUDA:** Available ✅  
+**Test Date:** Mon Dec 29 10:55:12 UTC 2025
 
-### GPU Test Results
+### GPU Test Results (ALL PASSED ✅)
 
 | Test Phase | Status | Details |
 |------------|--------|---------|
-| SOLID Architecture | ✅ PASS | All inheritance verified |
+| SOLID Architecture | ✅ PASS | Liskov, Open/Closed, Interface Segregation |
 | PyTorch/CUDA | ✅ PASS | L40S detected, 47.7GB |
-| Model Loading | ⚠️ SKIP | HuggingFace network blocked |
+| Model Loading | ✅ PASS | TinyLlama loaded in 7.26s |
+| Generation Benchmark | ✅ PASS | 50.8 tokens/second average |
 | Hybrid Engine | ✅ PASS | 77.78% acceptance rate |
 | Prefix Cache | ✅ PASS | 100% hit rate, 0.82μs/GET |
 | Entropy Controller | ✅ PASS | Strategy validation |
@@ -210,18 +212,40 @@
 |--------|-------|
 | GPU | NVIDIA L40S |
 | VRAM | 47.7 GB |
-| Cache PUT | 5.05μs/op |
+| Model Load Time | 7.26s (1.10B params) |
+| Throughput | **50.8 tokens/second** |
+| Cache PUT | 4.97μs/op |
 | Cache GET | 0.82μs/op |
 | Cache Hit Rate | 100% |
 
-**Note:** Model loading failed due to cluster network restrictions blocking HuggingFace. This is an infrastructure issue, not a code issue.
+### Generation Performance by Prompt
+
+| Prompt | Tokens | Time | Throughput |
+|--------|--------|------|------------|
+| 1 | 50 | 1.169s | 42.8 tok/s |
+| 2 | 34 | 0.636s | 53.4 tok/s |
+| 3 | 50 | 0.934s | 53.6 tok/s |
+| 4 | 50 | 0.933s | 53.6 tok/s |
+| 5 | 50 | 0.937s | 53.4 tok/s |
+| **Total** | **234** | **4.61s** | **50.8 tok/s** |
+
+### Bug Fixed: HuggingFace Offline Mode
+
+**Issue:** The container image `quay.io/modh/vllm:rhoai-2.20-cuda` has `HF_HUB_OFFLINE=1` set by default, preventing model downloads.
+
+**Fix Applied:**
+```yaml
+HF_HUB_OFFLINE: "0"
+TRANSFORMERS_OFFLINE: "0"
+HF_HOME: "/tmp/hf_cache"
+```
 
 ---
 
 ### Known Limitations
 
 1. E2E tests require a running server (`DFASTLLM_TEST_URL`)
-2. HuggingFace access blocked on some clusters (proxy/firewall)
+2. Container images may have `HF_HUB_OFFLINE=1` - override with env var
 
 ---
 
