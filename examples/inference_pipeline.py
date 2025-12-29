@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""End-to-End Inference Pipeline Example for vdiff.
+"""End-to-End Inference Pipeline Example for dfastllm.
 
-This script demonstrates the complete vdiff inference pipeline with:
+This script demonstrates the complete dfastllm inference pipeline with:
 1. Standard diffusion generation
 2. APD (Adaptive Parallel Decoding) generation
 3. Comparison of both methods
@@ -22,11 +22,10 @@ import time
 import sys
 import os
 
-# Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from vdiff.config import VDiffConfig
-from vdiff.engine import VDiffEngine, SamplingParams
+from dfastllm.config import DFastLLMConfig
+from dfastllm.engine import DFastLLMEngine, SamplingParams
 
 
 def print_header(title: str):
@@ -49,7 +48,7 @@ def print_stats(stats: dict, prefix: str = ""):
 
 
 def run_inference(
-    engine: VDiffEngine,
+    engine: DFastLLMEngine,
     prompt: str,
     max_tokens: int = 32,
     temperature: float = 0.0,
@@ -77,7 +76,7 @@ def run_inference(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="vdiff Inference Pipeline Example")
+    parser = argparse.ArgumentParser(description="dfastllm Inference Pipeline Example")
     parser.add_argument("--model", type=str, default="gpt2", help="Model name or path")
     parser.add_argument("--max-tokens", type=int, default=32, help="Max tokens to generate")
     parser.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature")
@@ -88,7 +87,7 @@ def main():
     parser.add_argument("--trust-remote-code", action="store_true", help="Trust remote code")
     args = parser.parse_args()
     
-    print_header("vdiff Inference Pipeline")
+    print_header("dfastllm Inference Pipeline")
     print(f"Model: {args.model}")
     print(f"Max tokens: {args.max_tokens}")
     print(f"Temperature: {args.temperature}")
@@ -96,7 +95,7 @@ def main():
     print(f"Diffusion steps: {args.diffusion_steps}")
     
     # Create configuration
-    config = VDiffConfig(
+    config = DFastLLMConfig(
         model=args.model,
         dtype=args.dtype,
         trust_remote_code=args.trust_remote_code,
@@ -108,7 +107,7 @@ def main():
     # Initialize engine
     print_header("Initializing Engine")
     start_time = time.time()
-    engine = VDiffEngine(config)
+    engine = DFastLLMEngine(config)
     init_time = time.time() - start_time
     print(f"Engine initialized in {init_time:.2f}s")
     print(f"Device: {engine._device}")

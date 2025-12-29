@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local test script for vdiff diffusion sampler.
+"""Local test script for dfastllm diffusion sampler.
 
 Tests the optimized diffusion generation code with a small model (GPT-2).
 Works on CPU without GPU.
@@ -15,7 +15,7 @@ import time
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from vdiff.engine.diffusion_sampler import (
+from dfastllm.engine.diffusion_sampler import (
     diffusion_generate,
     DiffusionSampler,
     DiffusionSamplerConfig,

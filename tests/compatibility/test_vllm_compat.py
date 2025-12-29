@@ -1,13 +1,13 @@
 """Compatibility tests to ensure vLLM API compatibility.
 
-These tests verify that vdiff's API matches vLLM's API exactly,
+These tests verify that dfastllm's API matches vLLM's API exactly,
 ensuring drop-in compatibility for KServe and llm-d deployments.
 """
 
 import pytest
 from pydantic import ValidationError
 
-from vdiff.entrypoints.openai.protocol import (
+from dfastllm.entrypoints.openai.protocol import (
     CompletionRequest,
     CompletionResponse,
     CompletionResponseChoice,
@@ -173,7 +173,7 @@ class TestModelListCompat:
         """Test model list matches OpenAI spec."""
         model = ModelCard(
             id="test-model",
-            owned_by="vdiff",
+            owned_by="dfastllm",
         )
         
         model_list = ModelList(data=[model])
@@ -211,10 +211,10 @@ class TestErrorResponseCompat:
 
 
 class TestVLLMExtensions:
-    """Test that vdiff extensions don't break vLLM compatibility."""
+    """Test that dfastllm extensions don't break vLLM compatibility."""
     
     def test_completion_request_extensions(self):
-        """Test vdiff extensions in completion request."""
+        """Test dfastllm extensions in completion request."""
         # Extensions should be optional
         request = CompletionRequest(
             model="test",
@@ -226,7 +226,7 @@ class TestVLLMExtensions:
         assert request.confidence_threshold is None
     
     def test_chat_request_extensions(self):
-        """Test vdiff extensions in chat request."""
+        """Test dfastllm extensions in chat request."""
         request = ChatCompletionRequest(
             model="test",
             messages=[ChatMessage(role="user", content="hello")],
@@ -237,7 +237,7 @@ class TestVLLMExtensions:
         assert request.confidence_threshold is None
     
     def test_response_extensions_optional(self):
-        """Test that vdiff extension fields are optional in response."""
+        """Test that dfastllm extension fields are optional in response."""
         response = CompletionResponse(
             model="test",
             choices=[CompletionResponseChoice(index=0, text="test")],
@@ -287,14 +287,13 @@ class TestCLICompatibility:
         # These should all be supported
         assert len(common_args) > 0
     
-    def test_vdiff_specific_arguments(self):
-        """Document vdiff-specific CLI arguments."""
-        vdiff_args = [
+    def test_dfastllm_specific_arguments(self):
+        """Document dfastllm-specific CLI arguments."""
+        dfastllm_args = [
             "--enable-kv-cache",
             "--enable-parallel-decoding",
             "--confidence-threshold",
             "--block-size",
         ]
         
-        # These are vdiff extensions
-        assert len(vdiff_args) > 0
+        assert len(dfastllm_args) > 0

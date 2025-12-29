@@ -1,11 +1,11 @@
-"""Pytest configuration and fixtures for vdiff tests."""
+"""Pytest configuration and fixtures for dfastllm tests."""
 
 import pytest
 import asyncio
 from typing import Generator, AsyncGenerator
 from unittest.mock import MagicMock, patch
 
-from dfastllm.config import DFastLLMConfig as VDiffConfig
+from dfastllm.config import DFastLLMConfig
 from dfastllm.engine.sampling_params import SamplingParams
 from dfastllm.engine.outputs import CompletionOutput, RequestOutput, RequestMetrics
 
@@ -19,9 +19,9 @@ def event_loop():
 
 
 @pytest.fixture
-def mock_config() -> VDiffConfig:
+def mock_config() -> DFastLLMConfig:
     """Create a mock configuration for testing."""
-    return VDiffConfig(
+    return DFastLLMConfig(
         model="mock-model",
         tokenizer="mock-model",
         host="127.0.0.1",
@@ -108,7 +108,7 @@ def mock_model():
 
 @pytest.fixture
 def mock_engine(mock_config, mock_tokenizer, mock_request_output):
-    """Create a mock vdiff engine."""
+    """Create a mock dfastllm engine."""
     engine = MagicMock()
     engine.config = mock_config
     engine.is_ready = True
@@ -134,17 +134,16 @@ def mock_engine(mock_config, mock_tokenizer, mock_request_output):
 async def test_client(mock_config, mock_engine):
     """Create a test client for the API server."""
     from fastapi.testclient import TestClient
-    from vdiff.entrypoints.openai.api_server import create_app
+    from dfastllm.entrypoints.openai.api_server import create_app
     
-    with patch("vdiff.entrypoints.openai.api_server.VDiffEngine") as MockEngine:
+    with patch("dfastllm.entrypoints.openai.api_server.DFastLLMEngine") as MockEngine:
         MockEngine.return_value = mock_engine
         
-        # Override lifespan for testing
         from contextlib import asynccontextmanager
         
         @asynccontextmanager
         async def test_lifespan(app):
-            import vdiff.entrypoints.openai.api_server as server
+            import dfastllm.entrypoints.openai.api_server as server
             server.engine = mock_engine
             server.completion_serving = MagicMock()
             server.chat_serving = MagicMock()
