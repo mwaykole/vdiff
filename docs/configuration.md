@@ -38,6 +38,23 @@
 | `--apd-max-parallel` | Max tokens per APD step | 8 |
 | `--apd-threshold` | Acceptance threshold (0-1) | 0.3 |
 
+### Hybrid Mode (NEW)
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--enable-hybrid` | Enable hybrid diffusion-AR mode | false |
+| `--hybrid-mode` | Mode: deer, spec_diff, semi_ar | deer |
+| `--hybrid-draft-size` | Tokens per draft | 8 |
+| `--hybrid-threshold` | Verification threshold | 0.3 |
+
+### Performance Optimizations
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--compile` | Use torch.compile | true |
+| `--flash-attention` | Use Flash Attention 2 | true |
+| `--enable-batching` | Enable continuous batching | false |
+
 ## Environment Variables
 
 | Variable | Description |
@@ -55,26 +72,36 @@
 ### Standard Usage (APD enabled by default)
 
 ```bash
-python -m vdiff.entrypoints.openai.api_server \
+python -m dfastllm.cli serve \
     --model GSAI-ML/LLaDA-8B-Instruct \
     --port 8000 \
     --trust-remote-code
 ```
 
-### Disable APD
+### With Hybrid Mode (DEER)
 
 ```bash
-python -m vdiff.entrypoints.openai.api_server \
+python -m dfastllm.cli serve \
     --model GSAI-ML/LLaDA-8B-Instruct \
-    --disable-apd
+    --enable-hybrid \
+    --hybrid-mode deer
 ```
 
 ### Custom APD Settings
 
 ```bash
-python -m vdiff.entrypoints.openai.api_server \
+python -m dfastllm.cli serve \
     --model GSAI-ML/LLaDA-8B-Instruct \
     --apd-max-parallel 16 \
     --apd-threshold 0.2 \
     --diffusion-steps 128
+```
+
+### Using Environment Variables
+
+```bash
+export VDIFF_MODEL="GSAI-ML/LLaDA-8B-Instruct"
+export VDIFF_HYBRID_ENABLED=true
+export VDIFF_HYBRID_MODE=deer
+python -m dfastllm.cli serve
 ```

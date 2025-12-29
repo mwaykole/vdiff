@@ -2,9 +2,9 @@
 
 <div align="center">
 
-**Get Started with vdiff in 5 Minutes**
+**Get Started with dfastllm in 5 Minutes**
 
-*High-performance Diffusion LLM serving made easy*
+*High-performance Hybrid Diffusion-AR LLM serving made easy*
 
 </div>
 

@@ -29,7 +29,7 @@ pip install -e .
 Start the server with a diffusion LLM:
 
 ```bash
-python -m vdiff.entrypoints.openai.api_server \
+python -m dfastllm.entrypoints.openai.api_server \
     --model GSAI-ML/LLaDA-8B-Instruct \
     --port 8000 \
     --trust-remote-code
@@ -98,7 +98,7 @@ print(response.choices[0].message.content)
 APD is enabled by default for better performance:
 
 ```bash
-python -m vdiff.entrypoints.openai.api_server \
+python -m dfastllm.entrypoints.openai.api_server \
     --model GSAI-ML/LLaDA-8B-Instruct \
     --port 8000 \
     --apd-max-parallel 8 \

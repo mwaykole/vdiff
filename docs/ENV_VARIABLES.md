@@ -55,6 +55,38 @@ MoR enables adaptive compute allocation per token (30-50% compute savings).
 | `VDIFF_MOR_BATCH_DEPTHS` | `true` | Batch tokens by recursion depth |
 | `VDIFF_MOR_LOG_STATS` | `false` | Log detailed MoR statistics |
 
+## 🔀 Hybrid Diffusion-AR Mode (NEW)
+
+Hybrid mode combines diffusion drafting with autoregressive verification for 2-8x speedup.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VDIFF_HYBRID_ENABLED` | `false` | Enable hybrid diffusion-AR mode |
+| `VDIFF_HYBRID_MODE` | `deer` | Mode: deer, spec_diff, semi_ar, adaptive |
+| `VDIFF_HYBRID_DRAFT_SIZE` | `8` | Tokens to draft per diffusion step |
+| `VDIFF_HYBRID_MAX_DRAFT` | `32` | Maximum draft tokens |
+| `VDIFF_HYBRID_THRESHOLD` | `0.3` | Acceptance threshold for verification |
+| `VDIFF_HYBRID_ADAPTIVE` | `true` | Dynamically adjust draft length |
+| `VDIFF_AR_VERIFIER_MODEL` | - | Optional separate AR model for verification |
+
+## 📊 Continuous Batching
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VDIFF_ENABLE_BATCHING` | `false` | Enable continuous batching |
+| `VDIFF_MAX_BATCH_SIZE` | `8` | Maximum batch size |
+| `VDIFF_MAX_WAIT_TIME_MS` | `50` | Max wait time before batching |
+| `VDIFF_PREFIX_CACHE` | `true` | Enable prefix caching |
+| `VDIFF_MAX_CACHE_SIZE` | `100` | Maximum prefix cache entries |
+
+## 🎚️ Entropy-Adaptive Control
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VDIFF_ADAPTIVE_ENTROPY` | `false` | Enable entropy-based adaptation |
+| `VDIFF_ENTROPY_HIGH` | `2.0` | High entropy threshold |
+| `VDIFF_ENTROPY_LOW` | `0.5` | Low entropy threshold |
+
 ## 🔒 Production Settings
 
 | Variable | Default | Description |

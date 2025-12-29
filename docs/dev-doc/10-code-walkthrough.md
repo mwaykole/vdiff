@@ -59,8 +59,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn         # ASGI server
 
-from vdiff.config import VDiffConfig
-from vdiff.engine import VDiffEngine, SamplingParams
+from dfastllm.config import VDiffConfig
+from dfastllm.engine import VDiffEngine, SamplingParams
 from .protocol import CompletionRequest, CompletionResponse
 from .serving_completion import OpenAIServingCompletion
 from .serving_chat import OpenAIServingChat

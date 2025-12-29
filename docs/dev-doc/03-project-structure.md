@@ -153,7 +153,7 @@ flowchart LR
 ```python
 # What it contains:
 from vdiff.version import __version__
-from vdiff.config import VDiffConfig, ModelConfig
+from dfastllm.config import VDiffConfig, ModelConfig
 
 __all__ = ["__version__", "VDiffConfig", "ModelConfig"]
 ```
