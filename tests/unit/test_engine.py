@@ -189,7 +189,7 @@ class TestDFastLLMEngineInit:
     @patch("dfastllm.engine.dfastllm_engine.TORCH_AVAILABLE", False)
     def test_mock_mode_initialization(self, mock_model_config, mock_tokenizer):
         """Test engine initialization in mock mode (no PyTorch)."""
-        from dfastllm.engine.vdiff_engine import DFastLLMEngine
+        from dfastllm.engine.dfastllm_engine import DFastLLMEngine
         
         mock_tokenizer.return_value = MagicMock()
         mock_model_config.from_pretrained.return_value = MagicMock()
