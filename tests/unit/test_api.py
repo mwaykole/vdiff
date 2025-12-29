@@ -10,6 +10,13 @@ except ImportError:
     FASTAPI_AVAILABLE = False
     TestClient = None
 
+from dfastllm.entrypoints.openai.protocol import (
+    CompletionRequest,
+    ChatCompletionRequest,
+    ChatMessage,
+)
+from dfastllm.entrypoints.openai.api_server import create_error_response
+
 pytestmark = pytest.mark.skipif(
     not FASTAPI_AVAILABLE,
     reason="FastAPI not installed"
@@ -44,8 +51,6 @@ class TestCompletionEndpoint:
     
     def test_completion_request_structure(self):
         """Test the expected request structure."""
-        from dfastllm.entrypoints.openai.protocol import CompletionRequest
-        
         request = CompletionRequest(
             model="test-model",
             prompt="Hello, world!",
@@ -60,8 +65,6 @@ class TestCompletionEndpoint:
     
     def test_completion_request_defaults(self):
         """Test default values in request."""
-        from dfastllm.entrypoints.openai.protocol import CompletionRequest
-        
         request = CompletionRequest(
             model="test-model",
             prompt="Hello",
@@ -76,8 +79,6 @@ class TestChatCompletionEndpoint:
     
     def test_chat_request_structure(self):
         """Test the expected chat request structure."""
-        from dfastllm.entrypoints.openai.protocol import ChatCompletionRequest, ChatMessage
-        
         request = ChatCompletionRequest(
             model="test-model",
             messages=[
@@ -92,8 +93,6 @@ class TestChatCompletionEndpoint:
     
     def test_chat_request_with_system_message(self):
         """Test chat request with system message."""
-        from dfastllm.entrypoints.openai.protocol import ChatCompletionRequest, ChatMessage
-        
         request = ChatCompletionRequest(
             model="test-model",
             messages=[
@@ -111,8 +110,6 @@ class TestErrorResponses:
     
     def test_error_response_structure(self):
         """Test error response structure."""
-        from dfastllm.entrypoints.openai.api_server import create_error_response
-        
         response = create_error_response(
             status_code=400,
             message="Invalid request",
@@ -120,7 +117,6 @@ class TestErrorResponses:
             request_id="test-123",
         )
         
-        # Verify it's a proper response
         assert response.status_code == 400
 
 
@@ -129,12 +125,9 @@ class TestModelNotFoundError:
     
     def test_model_not_found_exception(self):
         """Test model not found error response creation."""
-        from dfastllm.entrypoints.openai.api_server import create_error_response
-        
         response = create_error_response(
             status_code=404,
             message="Model 'xyz' not found",
             error_type="model_not_found",
         )
         assert response.status_code == 404
-

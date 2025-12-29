@@ -4,6 +4,21 @@ import pytest
 import asyncio
 from typing import Generator, AsyncGenerator
 from unittest.mock import MagicMock, patch
+from contextlib import asynccontextmanager
+
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+    torch = None
+
+try:
+    from fastapi.testclient import TestClient
+    FASTAPI_AVAILABLE = True
+except ImportError:
+    FASTAPI_AVAILABLE = False
+    TestClient = None
 
 from dfastllm.config import DFastLLMConfig
 from dfastllm.engine.sampling_params import SamplingParams
@@ -93,15 +108,13 @@ def mock_model():
     """Create a mock model."""
     model = MagicMock()
     
-    # Mock generate output
-    import torch
-    mock_output = torch.tensor([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])
-    model.generate.return_value = mock_output
-    
-    # Mock forward output
-    forward_output = MagicMock()
-    forward_output.logits = torch.randn(1, 10, 32000)
-    model.return_value = forward_output
+    if TORCH_AVAILABLE:
+        mock_output = torch.tensor([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])
+        model.generate.return_value = mock_output
+        
+        forward_output = MagicMock()
+        forward_output.logits = torch.randn(1, 10, 32000)
+        model.return_value = forward_output
     
     return model
 
@@ -133,17 +146,17 @@ def mock_engine(mock_config, mock_tokenizer, mock_request_output):
 @pytest.fixture
 async def test_client(mock_config, mock_engine):
     """Create a test client for the API server."""
-    from fastapi.testclient import TestClient
+    if not FASTAPI_AVAILABLE:
+        pytest.skip("FastAPI not installed")
+    
     from dfastllm.entrypoints.openai.api_server import create_app
+    import dfastllm.entrypoints.openai.api_server as server
     
     with patch("dfastllm.entrypoints.openai.api_server.DFastLLMEngine") as MockEngine:
         MockEngine.return_value = mock_engine
         
-        from contextlib import asynccontextmanager
-        
         @asynccontextmanager
         async def test_lifespan(app):
-            import dfastllm.entrypoints.openai.api_server as server
             server.engine = mock_engine
             server.completion_serving = MagicMock()
             server.chat_serving = MagicMock()
