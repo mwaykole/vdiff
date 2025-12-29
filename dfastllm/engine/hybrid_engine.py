@@ -22,6 +22,8 @@ from enum import Enum
 import logging
 import time
 
+from dfastllm.engine.base import BaseStats, BaseConfig
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -42,13 +44,13 @@ class HybridMode(Enum):
 
 
 @dataclass
-class HybridConfig:
+class HybridConfig(BaseConfig):
     """Configuration for hybrid diffusion-AR generation.
     
+    Inherits from BaseConfig for consistent validation and serialization.
     Based on hyperparameters from DEER and DiffuSpec papers.
     
     Attributes:
-        enabled: Whether hybrid mode is enabled.
         mode: Hybrid generation mode to use.
         ar_verifier_model: Path to AR model for verification.
         draft_block_size: Number of tokens to draft per diffusion step.
@@ -64,7 +66,6 @@ class HybridConfig:
         cache_ar_kv: Cache AR model key-values for efficiency.
         log_stats: Log hybrid generation statistics.
     """
-    enabled: bool = True
     mode: HybridMode = HybridMode.DEER
     ar_verifier_model: Optional[str] = None
     draft_block_size: int = 8
@@ -92,8 +93,11 @@ class HybridConfig:
 
 
 @dataclass
-class HybridStats:
-    """Statistics for hybrid generation performance."""
+class HybridStats(BaseStats):
+    """Statistics for hybrid generation performance.
+    
+    Inherits from BaseStats for consistent serialization.
+    """
     total_requests: int = 0
     total_tokens_generated: int = 0
     total_drafts: int = 0
