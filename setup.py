@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Setup script for vdiff."""
+"""Setup script for dfastllm."""
 
 from setuptools import setup, find_packages
 

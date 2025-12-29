@@ -1340,7 +1340,7 @@ class AsyncDFastLLMEngine:
         )
         self._is_running = True
         
-        logger.info("Async vdiff engine started")
+        logger.info("Async dfastllm engine started")
     
     async def stop(self, timeout: float = 30) -> None:
         """Stop the async engine gracefully.
@@ -1354,7 +1354,7 @@ class AsyncDFastLLMEngine:
         if self._engine:
             await self._engine.shutdown(timeout=timeout)
         
-        logger.info("Async vdiff engine stopped")
+        logger.info("Async dfastllm engine stopped")
     
     @property
     def is_ready(self) -> bool:

@@ -1,6 +1,6 @@
 # Basic Concepts
 
-This document explains fundamental concepts you need to understand vdiff. **No prior knowledge required.**
+This document explains fundamental concepts you need to understand dfastllm. **No prior knowledge required.**
 
 ## What is an AI Language Model?
 
@@ -163,7 +163,7 @@ flowchart LR
         C3[Python Script]
     end
     
-    subgraph Server["vdiff Server"]
+    subgraph Server["dfastllm Server"]
         API[Receive Request]
         PROCESS[Run AI Model]
         RESPOND[Send Response]
@@ -235,7 +235,7 @@ flowchart TB
     subgraph Servers["Servers that support it"]
         S1["OpenAI"]
         S2["vLLM"]
-        S3["vdiff ✓"]
+        S3["dfastllm ✓"]
         S4["TGI"]
     end
     
@@ -245,7 +245,7 @@ flowchart TB
     Standard --> S4
 ```
 
-**Why it matters**: If your app works with OpenAI, it works with vdiff!
+**Why it matters**: If your app works with OpenAI, it works with dfastllm!
 
 ## What is GPU vs CPU?
 
@@ -275,7 +275,7 @@ flowchart TB
 | Speed for AI | Slow | Fast |
 | Cost | Included | Extra hardware |
 | Power | Low | High |
-| vdiff support | ✅ Yes | ✅ Yes |
+| dfastllm support | ✅ Yes | ✅ Yes |
 
 ## What is Kubernetes?
 
@@ -285,12 +285,12 @@ Kubernetes (K8s) is a system that manages containers (packaged applications):
 flowchart TB
     subgraph K8s["Kubernetes Cluster"]
         subgraph Node1["Server 1"]
-            P1[vdiff Pod]
-            P2[vdiff Pod]
+            P1[dfastllm Pod]
+            P2[dfastllm Pod]
         end
         
         subgraph Node2["Server 2"]
-            P3[vdiff Pod]
+            P3[dfastllm Pod]
         end
         
         LB[Load Balancer]
@@ -344,7 +344,7 @@ flowchart TB
         GPU["GPU = Fast AI hardware"]
     end
     
-    subgraph vdiff["vdiff combines all"]
+    subgraph dfastllm["dfastllm combines all"]
         V["Server for Diffusion LLMs<br/>with OpenAI API<br/>on GPU/CPU"]
     end
     
@@ -359,5 +359,5 @@ flowchart TB
 
 Now that you understand the basics, continue to:
 
-👉 [02-architecture.md](02-architecture.md) - See how vdiff is built
+👉 [02-architecture.md](02-architecture.md) - See how dfastllm is built
 

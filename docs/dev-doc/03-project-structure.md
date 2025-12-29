@@ -1,19 +1,19 @@
 # Project Structure
 
-This document explains every file and folder in the vdiff codebase.
+This document explains every file and folder in the dfastllm codebase.
 
 ## Directory Tree
 
 ```
-vdiff/
-├── 📁 vdiff/                    # Main Python package
+dfastllm/
+├── 📁 dfastllm/                    # Main Python package
 │   ├── 📄 __init__.py           # Package initialization
 │   ├── 📄 version.py            # Version information
 │   ├── 📄 config.py             # Configuration classes
 │   │
 │   ├── 📁 engine/               # Core inference engine
 │   │   ├── 📄 __init__.py       # Engine exports
-│   │   ├── 📄 vdiff_engine.py   # Main engine class
+│   │   ├── 📄 dfastllm_engine.py   # Main engine class
 │   │   ├── 📄 diffusion_sampler.py  # Diffusion algorithm
 │   │   ├── 📄 apd.py            # APD optimization
 │   │   ├── 📄 sampling_params.py    # Generation parameters
@@ -74,14 +74,14 @@ vdiff/
 
 ```mermaid
 flowchart TB
-    subgraph Root["vdiff/ (Root)"]
-        subgraph Package["vdiff/ (Python Package)"]
+    subgraph Root["dfastllm/ (Root)"]
+        subgraph Package["dfastllm/ (Python Package)"]
             INIT["__init__.py"]
             VERSION["version.py"]
             CONFIG["config.py"]
             
             subgraph Engine["engine/"]
-                ENG["vdiff_engine.py"]
+                ENG["dfastllm_engine.py"]
                 DIFF["diffusion_sampler.py"]
                 APD["apd.py"]
                 SP["sampling_params.py"]
@@ -146,23 +146,23 @@ flowchart LR
 
 ---
 
-### vdiff/__init__.py
+### dfastllm/__init__.py
 
-**Purpose**: Package initialization - what gets exported when you `import vdiff`
+**Purpose**: Package initialization - what gets exported when you `import dfastllm`
 
 ```python
 # What it contains:
-from vdiff.version import __version__
-from dfastllm.config import VDiffConfig, ModelConfig
+from dfastllm.version import __version__
+from dfastllm.config import DFastLLMConfig, ModelConfig
 
-__all__ = ["__version__", "VDiffConfig", "ModelConfig"]
+__all__ = ["__version__", "DFastLLMConfig", "ModelConfig"]
 ```
 
 ```mermaid
 flowchart LR
-    IMPORT["from vdiff import ..."]
+    IMPORT["from dfastllm import ..."]
     VERSION["__version__"]
-    CONFIG["VDiffConfig"]
+    CONFIG["DFastLLMConfig"]
     MODEL["ModelConfig"]
     
     IMPORT --> VERSION
@@ -172,7 +172,7 @@ flowchart LR
 
 ---
 
-### vdiff/version.py
+### dfastllm/version.py
 
 **Purpose**: Version information
 
@@ -184,13 +184,13 @@ VLLM_COMPAT_VERSION = "0.4.0"  # Compatible vLLM version
 
 ---
 
-### vdiff/config.py
+### dfastllm/config.py
 
 **Purpose**: Configuration classes for the engine and server
 
 ```mermaid
 flowchart TB
-    subgraph VDiffConfig["VDiffConfig"]
+    subgraph DFastLLMConfig["DFastLLMConfig"]
         subgraph Model["Model Config"]
             M1["model: str"]
             M2["tokenizer: str"]
@@ -219,15 +219,15 @@ flowchart TB
 
 ---
 
-### vdiff/engine/__init__.py
+### dfastllm/engine/__init__.py
 
 **Purpose**: Export engine classes
 
 ```mermaid
 flowchart LR
     subgraph Exports["Engine Exports"]
-        VE["VDiffEngine"]
-        AVE["AsyncVDiffEngine"]
+        VE["DFastLLMEngine"]
+        AVE["AsyncDFastLLMEngine"]
         SP["SamplingParams"]
         CO["CompletionOutput"]
         RO["RequestOutput"]
@@ -238,14 +238,14 @@ flowchart LR
 
 ---
 
-### vdiff/engine/vdiff_engine.py
+### dfastllm/engine/dfastllm_engine.py
 
-**Purpose**: The main engine class - the brain of vdiff
+**Purpose**: The main engine class - the brain of dfastllm
 
 ```mermaid
 classDiagram
-    class VDiffEngine {
-        -config: VDiffConfig
+    class DFastLLMEngine {
+        -config: DFastLLMConfig
         -_model: AutoModelForCausalLM
         -_tokenizer: TokenizerWrapper
         -_state: EngineState
@@ -270,7 +270,7 @@ classDiagram
         ERROR
     }
     
-    VDiffEngine --> EngineState
+    DFastLLMEngine --> EngineState
 ```
 
 **Key Methods**:
@@ -285,7 +285,7 @@ classDiagram
 
 ---
 
-### vdiff/engine/diffusion_sampler.py
+### dfastllm/engine/diffusion_sampler.py
 
 **Purpose**: Implements the diffusion generation algorithm
 
@@ -315,7 +315,7 @@ flowchart TB
 
 ---
 
-### vdiff/engine/apd.py
+### dfastllm/engine/apd.py
 
 **Purpose**: Adaptive Parallel Decoding optimization
 
@@ -339,7 +339,7 @@ flowchart TB
 
 ---
 
-### vdiff/engine/sampling_params.py
+### dfastllm/engine/sampling_params.py
 
 **Purpose**: Parameters for text generation
 
@@ -357,7 +357,7 @@ flowchart LR
 
 ---
 
-### vdiff/engine/outputs.py
+### dfastllm/engine/outputs.py
 
 **Purpose**: Output data structures
 
@@ -392,7 +392,7 @@ classDiagram
 
 ---
 
-### vdiff/engine/tokenizer.py
+### dfastllm/engine/tokenizer.py
 
 **Purpose**: Wrapper around HuggingFace tokenizer
 
@@ -411,7 +411,7 @@ flowchart LR
 
 ---
 
-### vdiff/entrypoints/openai/api_server.py
+### dfastllm/entrypoints/openai/api_server.py
 
 **Purpose**: Main FastAPI application
 
@@ -445,7 +445,7 @@ flowchart TB
 
 ---
 
-### vdiff/entrypoints/openai/protocol.py
+### dfastllm/entrypoints/openai/protocol.py
 
 **Purpose**: Request and response data types
 
@@ -480,17 +480,17 @@ classDiagram
 
 ---
 
-### vdiff/metrics/prometheus.py
+### dfastllm/metrics/prometheus.py
 
 **Purpose**: Prometheus metrics for monitoring
 
 ```mermaid
 flowchart LR
     subgraph Metrics["Prometheus Metrics"]
-        REQ["vdiff_requests_total"]
-        LAT["vdiff_request_latency_seconds"]
-        TOK["vdiff_tokens_generated_total"]
-        ERR["vdiff_errors_total"]
+        REQ["dfastllm_requests_total"]
+        LAT["dfastllm_request_latency_seconds"]
+        TOK["dfastllm_tokens_generated_total"]
+        ERR["dfastllm_errors_total"]
     end
     
     subgraph Endpoint["Endpoint"]
@@ -509,7 +509,7 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph KServe["KServe Deployment"]
-        SR["serving-runtime.yaml<br/>Define vdiff runtime"]
+        SR["serving-runtime.yaml<br/>Define dfastllm runtime"]
         IS["inference-service.yaml<br/>Deploy model"]
     end
     
@@ -518,8 +518,8 @@ flowchart TB
 
 | File | Purpose |
 |------|---------|
-| `serving-runtime.yaml` | Defines vdiff as a ServingRuntime |
-| `inference-service.yaml` | Deploys a model using vdiff |
+| `serving-runtime.yaml` | Defines dfastllm as a ServingRuntime |
+| `inference-service.yaml` | Deploys a model using dfastllm |
 
 ---
 
@@ -556,7 +556,7 @@ flowchart TB
         PYDANTIC["pydantic"]
     end
     
-    subgraph VDiff["vdiff Package"]
+    subgraph DFastLLM["dfastllm Package"]
         CONFIG["config.py"]
         ENGINE["engine/"]
         ENTRY["entrypoints/"]
@@ -579,7 +579,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph Summary["Project Structure Summary"]
-        CODE["vdiff/<br/>Main code"]
+        CODE["dfastllm/<br/>Main code"]
         DEPLOY["deploy/<br/>Deployment"]
         TESTS["tests/<br/>Testing"]
         DOCS["docs/<br/>Documentation"]
@@ -589,7 +589,7 @@ flowchart TB
 
 | Directory | Contains |
 |-----------|----------|
-| `vdiff/` | All Python source code |
+| `dfastllm/` | All Python source code |
 | `deploy/` | Docker, Kubernetes files |
 | `tests/` | Unit and integration tests |
 | `docs/` | Documentation |

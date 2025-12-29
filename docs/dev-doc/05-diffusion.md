@@ -25,7 +25,7 @@ flowchart TB
         A1["The"] --> A2["cat"] --> A3["sat"] --> A4["on"]
     end
     
-    subgraph Diff["Diffusion (vdiff)"]
+    subgraph Diff["Diffusion (dfastllm)"]
         direction TB
         D1["[M] [M] [M] [M]"]
         D2["The [M] sat [M]"]
@@ -305,7 +305,7 @@ flowchart TB
         LC["low_confidence<br/>Unmask highest confidence first"]
         RAND["random<br/>Unmask randomly"]
         
-        LC --> |"Most common"| DEFAULT["Default in vdiff"]
+        LC --> |"Most common"| DEFAULT["Default in dfastllm"]
     end
 ```
 
@@ -315,7 +315,7 @@ flowchart TB
 
 ## Block-wise Generation
 
-For efficiency, vdiff generates in blocks:
+For efficiency, dfastllm generates in blocks:
 
 ```mermaid
 flowchart LR
@@ -431,7 +431,7 @@ classDiagram
 
 ## Early Stopping
 
-vdiff can stop early if all tokens are unmasked:
+dfastllm can stop early if all tokens are unmasked:
 
 ```mermaid
 flowchart TB
@@ -455,7 +455,7 @@ if not (x == mask_id).any():
 
 ```mermaid
 flowchart TB
-    subgraph Optimizations["Optimizations in vdiff"]
+    subgraph Optimizations["Optimizations in dfastllm"]
         O1["torch.no_grad()<br/>Disable gradient tracking"]
         O2["torch.compile()<br/>JIT compilation"]
         O3["Float16<br/>Half precision"]

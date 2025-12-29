@@ -723,7 +723,7 @@ class TestIsDiffusionModel:
             2. Verify all are detected as diffusion models
         
         LLaDA (Large Language Diffusion with mAsking) is a primary
-        diffusion LLM architecture supported by vdiff.
+        diffusion LLM architecture supported by dfastllm.
         """
         from dfastllm.engine.diffusion_sampler import is_diffusion_model
         

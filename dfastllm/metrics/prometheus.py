@@ -1,7 +1,7 @@
-"""Prometheus metrics for vdiff serving.
+"""Prometheus metrics for dfastllm serving.
 
 Metrics match vLLM's naming conventions where applicable,
-with additional vdiff-specific metrics.
+with additional dfastllm-specific metrics.
 """
 
 import time
@@ -39,7 +39,7 @@ request_failure_total: Optional["Counter"] = None
 prompt_tokens_total: Optional["Counter"] = None
 generation_tokens_total: Optional["Counter"] = None
 
-# vdiff specific counters
+# dfastllm specific counters
 parallel_tokens_decoded_total: Optional["Counter"] = None
 
 # Histograms (matching vLLM naming)
@@ -47,7 +47,7 @@ time_to_first_token_seconds: Optional["Histogram"] = None
 request_latency_seconds: Optional["Histogram"] = None
 time_per_output_token_seconds: Optional["Histogram"] = None
 
-# vdiff specific histograms
+# dfastllm specific histograms
 parallel_batch_size: Optional["Histogram"] = None
 
 # Gauges
@@ -89,62 +89,62 @@ def setup_metrics(model_name: str) -> None:
     
     # Request counters (vLLM compatible)
     request_success_total = Counter(
-        "vdiff_request_success_total",
+        "dfastllm_request_success_total",
         "Total number of successful requests",
         ["model"],
     )
     
     request_failure_total = Counter(
-        "vdiff_request_failure_total",
+        "dfastllm_request_failure_total",
         "Total number of failed requests",
         ["model"],
     )
     
     # Token counters (vLLM compatible)
     prompt_tokens_total = Counter(
-        "vdiff_prompt_tokens_total",
+        "dfastllm_prompt_tokens_total",
         "Total number of prompt tokens processed",
         ["model"],
     )
     
     generation_tokens_total = Counter(
-        "vdiff_generation_tokens_total",
+        "dfastllm_generation_tokens_total",
         "Total number of tokens generated",
         ["model"],
     )
     
-    # vdiff specific: parallel decoding tokens
+    # dfastllm specific: parallel decoding tokens
     parallel_tokens_decoded_total = Counter(
-        "vdiff_parallel_tokens_decoded_total",
+        "dfastllm_parallel_tokens_decoded_total",
         "Total number of tokens decoded in parallel (APD)",
         ["model"],
     )
     
     # Latency histograms (vLLM compatible)
     time_to_first_token_seconds = Histogram(
-        "vdiff_time_to_first_token_seconds",
+        "dfastllm_time_to_first_token_seconds",
         "Time to first token in seconds",
         ["model"],
         buckets=(0.001, 0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
     )
     
     request_latency_seconds = Histogram(
-        "vdiff_request_latency_seconds",
+        "dfastllm_request_latency_seconds",
         "Total request latency in seconds",
         ["model"],
         buckets=(0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0),
     )
     
     time_per_output_token_seconds = Histogram(
-        "vdiff_time_per_output_token_seconds",
+        "dfastllm_time_per_output_token_seconds",
         "Average time per output token in seconds",
         ["model"],
         buckets=(0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0),
     )
     
-    # vdiff specific: parallel batch size distribution
+    # dfastllm specific: parallel batch size distribution
     parallel_batch_size = Histogram(
-        "vdiff_parallel_batch_size",
+        "dfastllm_parallel_batch_size",
         "Distribution of parallel decoding batch sizes (APD)",
         ["model"],
         buckets=(1, 2, 4, 8, 16, 32, 64, 128),
@@ -152,32 +152,32 @@ def setup_metrics(model_name: str) -> None:
     
     # Gauges (vLLM compatible)
     kv_cache_hit_rate = Gauge(
-        "vdiff_kv_cache_hit_rate",
+        "dfastllm_kv_cache_hit_rate",
         "KV cache hit rate",
         ["model"],
     )
     
     num_requests_running = Gauge(
-        "vdiff_num_requests_running",
+        "dfastllm_num_requests_running",
         "Number of requests currently running",
         ["model"],
     )
     
     num_requests_waiting = Gauge(
-        "vdiff_num_requests_waiting",
+        "dfastllm_num_requests_waiting",
         "Number of requests waiting in queue",
         ["model"],
     )
     
     gpu_memory_usage = Gauge(
-        "vdiff_gpu_memory_usage_bytes",
+        "dfastllm_gpu_memory_usage_bytes",
         "GPU memory usage in bytes",
         ["model", "device"],
     )
     
     # Model info
     model_info = Info(
-        "vdiff_model",
+        "dfastllm_model",
         "Information about the served model",
     )
     model_info.info({
@@ -224,7 +224,7 @@ def record_request(
         if generated_tokens > 0:
             generation_tokens_total.labels(model=_model_name).inc(generated_tokens)
         
-        # vdiff specific: parallel tokens
+        # dfastllm specific: parallel tokens
         if parallel_tokens > 0:
             parallel_tokens_decoded_total.labels(model=_model_name).inc(parallel_tokens)
             parallel_batch_size.labels(model=_model_name).observe(parallel_tokens)

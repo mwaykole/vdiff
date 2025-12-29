@@ -66,7 +66,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-logger = logging.getLogger("vdiff.server")
+logger = logging.getLogger("dfastllm.server")
 
 
 class RequestState(BaseModel):
@@ -345,7 +345,7 @@ def create_error_response(
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Lifespan context manager for startup and shutdown."""
     logger.info("=" * 60)
-    logger.info("Starting vdiff API Server")
+    logger.info("Starting dfastllm API Server")
     logger.info("=" * 60)
     
     if server_state.config is None:
@@ -442,7 +442,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     metrics_task = asyncio.create_task(update_metrics_periodically())
     
     logger.info("=" * 60)
-    logger.info(f"vdiff API Server ready")
+    logger.info(f"dfastllm API Server ready")
     logger.info(f"Listening on http://{config.host}:{config.port}")
     logger.info(f"Model: {model_name}")
     logger.info(f"Health check: http://{config.host}:{config.port}/health")
@@ -494,7 +494,7 @@ async def graceful_shutdown() -> None:
     if server_state.engine:
         await server_state.engine.shutdown()
     
-    logger.info("vdiff API Server shutdown complete")
+    logger.info("dfastllm API Server shutdown complete")
 
 
 def create_app(app_config: Optional[DFastLLMConfig] = None) -> FastAPI:
@@ -512,7 +512,7 @@ def create_app(app_config: Optional[DFastLLMConfig] = None) -> FastAPI:
     config = server_state.config
     
     app = FastAPI(
-        title="vdiff API Server",
+        title="dfastllm API Server",
         description=(
             "Production-ready vLLM-compatible API server for Diffusion LLMs. "
             "Supports LLaDA, Dream, and other diffusion language models with "
@@ -625,7 +625,7 @@ def register_routes(app: FastAPI) -> None:
     async def root():
         """Root endpoint with server info."""
         return {
-            "name": "vdiff API Server",
+            "name": "dfastllm API Server",
             "version": __version__,
             "status": "ready" if server_state.is_ready else "loading",
             "docs": "/docs",
@@ -785,7 +785,7 @@ def register_routes(app: FastAPI) -> None:
     async def get_engine_stats(
         _: bool = Depends(verify_api_key),
     ) -> Dict[str, Any]:
-        """Get engine statistics (vdiff extension)."""
+        """Get engine statistics (dfastllm extension)."""
         if server_state.engine is None:
             raise HTTPException(status_code=503, detail="Engine not ready")
         
@@ -801,7 +801,7 @@ def register_routes(app: FastAPI) -> None:
     async def get_engine_health(
         _: bool = Depends(verify_api_key),
     ) -> Dict[str, Any]:
-        """Get detailed engine health (vdiff extension)."""
+        """Get detailed engine health (dfastllm extension)."""
         if server_state.engine is None:
             raise HTTPException(status_code=503, detail="Engine not ready")
         return server_state.engine.get_health().to_dict()
@@ -811,7 +811,7 @@ def register_routes(app: FastAPI) -> None:
         request_id: str,
         _: bool = Depends(verify_api_key),
     ) -> Dict[str, Any]:
-        """Cancel a pending request (vdiff extension).
+        """Cancel a pending request (dfastllm extension).
         
         This endpoint allows clients to cancel requests that are still in the queue.
         Requests that are already being processed cannot be cancelled.
@@ -852,7 +852,7 @@ def register_routes(app: FastAPI) -> None:
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments matching vLLM style."""
     parser = argparse.ArgumentParser(
-        description="vdiff API Server - Production-ready serving for Diffusion LLMs",
+        description="dfastllm API Server - Production-ready serving for Diffusion LLMs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     
@@ -1154,7 +1154,7 @@ def main() -> None:
     )
     
     logger.info("=" * 60)
-    logger.info("vdiff API Server Configuration")
+    logger.info("dfastllm API Server Configuration")
     logger.info("=" * 60)
     logger.info(f"Model: {server_config.model}")
     logger.info(f"Diffusion Steps: {server_config.diffusion_steps}")

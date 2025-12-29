@@ -11,7 +11,7 @@ sequenceDiagram
     participant Client
     participant FastAPI as api_server.py
     participant Serving as serving_completion.py
-    participant Engine as vdiff_engine.py
+    participant Engine as dfastllm_engine.py
     participant Diffusion as diffusion_sampler.py
     participant Model as HuggingFace Model
     
@@ -59,8 +59,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn         # ASGI server
 
-from dfastllm.config import VDiffConfig
-from dfastllm.engine import VDiffEngine, SamplingParams
+from dfastllm.config import DFastLLMConfig
+from dfastllm.engine import DFastLLMEngine, SamplingParams
 from .protocol import CompletionRequest, CompletionResponse
 from .serving_completion import OpenAIServingCompletion
 from .serving_chat import OpenAIServingChat
@@ -71,7 +71,7 @@ flowchart LR
     subgraph Imports["Import Categories"]
         STD["Standard Library<br/>argparse, asyncio, os"]
         WEB["Web Framework<br/>fastapi, uvicorn"]
-        VDIFF["vdiff Modules<br/>config, engine, serving"]
+        VDIFF["dfastllm Modules<br/>config, engine, serving"]
     end
 ```
 
@@ -88,8 +88,8 @@ class ServerState:
     - Clear what state the server needs
     """
     def __init__(self):
-        self.engine: Optional[VDiffEngine] = None
-        self.config: Optional[VDiffConfig] = None
+        self.engine: Optional[DFastLLMEngine] = None
+        self.config: Optional[DFastLLMConfig] = None
         self.completion_serving: Optional[OpenAIServingCompletion] = None
         self.chat_serving: Optional[OpenAIServingChat] = None
         self.start_time: float = time.time()
@@ -109,8 +109,8 @@ server_state = ServerState()
 ```mermaid
 flowchart TB
     subgraph ServerState["ServerState Attributes"]
-        ENGINE["engine: VDiffEngine<br/>The AI engine"]
-        CONFIG["config: VDiffConfig<br/>Configuration"]
+        ENGINE["engine: DFastLLMEngine<br/>The AI engine"]
+        CONFIG["config: DFastLLMConfig<br/>Configuration"]
         SERVING["completion_serving<br/>chat_serving<br/>Request handlers"]
         STATS["start_time, request_count<br/>Statistics"]
     end
@@ -230,7 +230,7 @@ def create_app() -> FastAPI:
     Create and configure the FastAPI application.
     """
     app = FastAPI(
-        title="vdiff API",
+        title="dfastllm API",
         description="Diffusion LLM Serving API",
         version="1.0.0",
         docs_url="/docs",      # Swagger UI
@@ -373,7 +373,7 @@ class OpenAIServingCompletion:
     
     def __init__(
         self,
-        engine: VDiffEngine,
+        engine: DFastLLMEngine,
         model_name: str,
     ):
         self.engine = engine
@@ -453,16 +453,16 @@ flowchart TB
     REQ --> PARAMS --> ENGINE --> RESULT --> CHOICES --> USAGE --> RESP
 ```
 
-## File: vdiff_engine.py
+## File: dfastllm_engine.py
 
 The core engine that manages the model and generation.
 
 ### Class Definition
 
 ```python
-class VDiffEngine:
+class DFastLLMEngine:
     """
-    Core inference engine for vdiff.
+    Core inference engine for dfastllm.
     
     Responsibilities:
     1. Load and manage the model
@@ -473,7 +473,7 @@ class VDiffEngine:
     
     def __init__(
         self,
-        config: VDiffConfig,
+        config: DFastLLMConfig,
         max_queue_size: Optional[int] = None,
         max_concurrent: Optional[int] = None,
     ):
@@ -505,8 +505,8 @@ class VDiffEngine:
 
 ```mermaid
 classDiagram
-    class VDiffEngine {
-        +config: VDiffConfig
+    class DFastLLMEngine {
+        +config: DFastLLMConfig
         -_state: EngineState
         -_stats: EngineStats
         -_model: nn.Module
@@ -1048,7 +1048,7 @@ flowchart LR
     subgraph Files["File Responsibilities"]
         API["api_server.py<br/>HTTP handling"]
         SERVE["serving_*.py<br/>Request formatting"]
-        ENG["vdiff_engine.py<br/>Model management"]
+        ENG["dfastllm_engine.py<br/>Model management"]
         DIFF["diffusion_sampler.py<br/>Text generation"]
         PROTO["protocol.py<br/>Data types"]
     end
@@ -1064,23 +1064,23 @@ flowchart LR
 |-------|------|-------------|
 | Request handling | api_server.py | FastAPI, middleware |
 | Response formatting | serving_completion.py | OpenAI format |
-| Model management | vdiff_engine.py | Loading, state |
+| Model management | dfastllm_engine.py | Loading, state |
 | Text generation | diffusion_sampler.py | Diffusion algorithm |
 | Data structures | protocol.py | Pydantic models |
 
 ---
 
-**Congratulations!** You've completed the vdiff developer documentation. You now understand:
+**Congratulations!** You've completed the dfastllm developer documentation. You now understand:
 
-1. ✅ What vdiff does
+1. ✅ What dfastllm does
 2. ✅ How the system is architected
 3. ✅ Where each file is located
 4. ✅ How the engine works
 5. ✅ How diffusion generates text
 6. ✅ How APD speeds things up
 7. ✅ How the API server handles requests
-8. ✅ How to configure vdiff
-9. ✅ How to deploy vdiff
+8. ✅ How to configure dfastllm
+9. ✅ How to deploy dfastllm
 10. ✅ How the code is structured
 
 **Go build something amazing!** 🚀

@@ -1,6 +1,6 @@
 # API Reference
 
-vdiff provides an OpenAI-compatible API that matches vLLM exactly.
+dfastllm provides an OpenAI-compatible API that matches vLLM exactly.
 
 ## Endpoints
 

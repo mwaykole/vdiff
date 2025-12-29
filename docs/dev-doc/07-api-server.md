@@ -4,7 +4,7 @@ This document explains how the FastAPI server works.
 
 ## What is the API Server?
 
-The **API Server** is the part of vdiff that:
+The **API Server** is the part of dfastllm that:
 1. Listens for HTTP requests
 2. Processes them
 3. Returns responses
@@ -17,7 +17,7 @@ flowchart LR
         C3["Browser"]
     end
     
-    subgraph Server["vdiff API Server"]
+    subgraph Server["dfastllm API Server"]
         API["FastAPI"]
     end
     
@@ -60,7 +60,7 @@ flowchart TB
         
         subgraph State["Server State"]
             SS["ServerState"]
-            ENG["VDiffEngine"]
+            ENG["DFastLLMEngine"]
         end
     end
     
@@ -380,10 +380,10 @@ sequenceDiagram
 ```mermaid
 classDiagram
     class ServerState {
-        +engine: VDiffEngine
+        +engine: DFastLLMEngine
         +completion_serving: OpenAIServingCompletion
         +chat_serving: OpenAIServingChat
-        +config: VDiffConfig
+        +config: DFastLLMConfig
         +rate_limiter: RateLimiter
         +start_time: float
         +request_count: int
@@ -490,7 +490,7 @@ flowchart LR
 ```mermaid
 classDiagram
     class OpenAIServingCompletion {
-        +engine: VDiffEngine
+        +engine: DFastLLMEngine
         +model_name: str
         +served_model_names: List
         
@@ -506,7 +506,7 @@ classDiagram
 ```mermaid
 classDiagram
     class OpenAIServingChat {
-        +engine: VDiffEngine
+        +engine: DFastLLMEngine
         +model_name: str
         
         +create_chat_completion(request) Response

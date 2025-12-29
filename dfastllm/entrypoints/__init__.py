@@ -1,4 +1,4 @@
-"""vdiff Entrypoints module."""
+"""dfastllm Entrypoints module."""
 
 from dfastllm.entrypoints.launcher import launch_server
 

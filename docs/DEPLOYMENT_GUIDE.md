@@ -4,7 +4,7 @@
 
 **Production Deployment for Docker and Kubernetes**
 
-*Complete guide to deploying vdiff in production environments*
+*Complete guide to deploying dfastllm in production environments*
 
 </div>
 
@@ -47,14 +47,14 @@ flowchart TD
 
 ```bash
 # Pull the image
-docker pull quay.io/mwaykole/vdiff:turbo-v9
+docker pull quay.io/mwaykole/dfastllm:turbo-v9
 
 # Run with GPU
 docker run -d --gpus all \
-  --name vdiff \
+  --name dfastllm \
   -p 8000:8000 \
   -v /path/to/models:/models \
-  quay.io/mwaykole/vdiff:turbo-v9 \
+  quay.io/mwaykole/dfastllm:turbo-v9 \
   --model /models/llada-8b-instruct \
   --enable-apd \
   --flash-attention \
@@ -68,8 +68,8 @@ docker run -d --gpus all \
 version: '3.8'
 
 services:
-  vdiff:
-    image: quay.io/mwaykole/vdiff:turbo-v9
+  dfastllm:
+    image: quay.io/mwaykole/dfastllm:turbo-v9
     ports:
       - "8000:8000"
     volumes:
@@ -111,9 +111,9 @@ docker-compose up -d
 ```mermaid
 flowchart TB
     subgraph Cluster["Kubernetes Cluster"]
-        subgraph NS["vdiff-experiments namespace"]
-            SR["ServingRuntime<br/>vdiff-runtime"]
-            IS["InferenceService<br/>vdiff-llada"]
+        subgraph NS["dfastllm-experiments namespace"]
+            SR["ServingRuntime<br/>dfastllm-runtime"]
+            IS["InferenceService<br/>dfastllm-llada"]
             PVC["PersistentVolumeClaim<br/>model-storage"]
             SVC["Service"]
             ROUTE["Route/Ingress"]
@@ -142,9 +142,9 @@ flowchart TB
 ### Step 1: Create Namespace
 
 ```bash
-oc new-project vdiff-experiments
+oc new-project dfastllm-experiments
 # or
-kubectl create namespace vdiff-experiments
+kubectl create namespace dfastllm-experiments
 ```
 
 ### Step 2: Create PVC for Models
@@ -155,7 +155,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: model-pvc
-  namespace: vdiff-experiments
+  namespace: dfastllm-experiments
 spec:
   accessModes:
     - ReadWriteOnce
@@ -177,7 +177,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: download-model
-  namespace: vdiff-experiments
+  namespace: dfastllm-experiments
 spec:
   template:
     spec:
@@ -231,19 +231,19 @@ kubectl wait --for=condition=complete job/download-model --timeout=30m
 apiVersion: serving.kserve.io/v1alpha1
 kind: ServingRuntime
 metadata:
-  name: vdiff-runtime
-  namespace: vdiff-experiments
+  name: dfastllm-runtime
+  namespace: dfastllm-experiments
   labels:
     opendatahub.io/dashboard: "true"
   annotations:
-    opendatahub.io/template-display-name: "vdiff - Diffusion LLM Runtime"
+    opendatahub.io/template-display-name: "dfastllm - Diffusion LLM Runtime"
 spec:
   multiModel: false
   supportedModelFormats:
     - name: diffusion-llm
       autoSelect: true
       version: "1"
-    - name: vdiff
+    - name: dfastllm
       autoSelect: true
       version: "1"
     - name: llada
@@ -253,7 +253,7 @@ spec:
   
   containers:
     - name: kserve-container
-      image: quay.io/mwaykole/vdiff:turbo-v9
+      image: quay.io/mwaykole/dfastllm:turbo-v9
       imagePullPolicy: IfNotPresent
       command:
         - python
@@ -347,8 +347,8 @@ kubectl apply -f serving-runtime.yaml
 apiVersion: serving.kserve.io/v1beta1
 kind: InferenceService
 metadata:
-  name: vdiff-llada
-  namespace: vdiff-experiments
+  name: dfastllm-llada
+  namespace: dfastllm-experiments
   annotations:
     serving.kserve.io/deploymentMode: RawDeployment
 spec:
@@ -356,7 +356,7 @@ spec:
     model:
       modelFormat:
         name: diffusion-llm
-      runtime: vdiff-runtime
+      runtime: dfastllm-runtime
       storageUri: pvc://model-pvc/llada-8b-instruct
       resources:
         requests:
@@ -380,11 +380,11 @@ kubectl apply -f inference-service.yaml
 
 ```bash
 # Create route
-oc expose service vdiff-llada-predictor --port=80
+oc expose service dfastllm-llada-predictor --port=80
 
 # Get route URL
-ROUTE=$(oc get route vdiff-llada-predictor -o jsonpath='{.spec.host}')
-echo "vdiff is available at: http://$ROUTE"
+ROUTE=$(oc get route dfastllm-llada-predictor -o jsonpath='{.spec.host}')
+echo "dfastllm is available at: http://$ROUTE"
 ```
 
 ### Step 7: Test Deployment
@@ -411,16 +411,16 @@ curl -X POST http://$ROUTE/v1/completions \
 
 ```bash
 # Install from local chart
-helm install vdiff ./deploy/helm/vdiff \
-  --namespace vdiff \
+helm install dfastllm ./deploy/helm/dfastllm \
+  --namespace dfastllm \
   --create-namespace \
   --set model.name="GSAI-ML/LLaDA-8B-Instruct" \
   --set resources.requests.gpu=1 \
   --set route.enabled=true
 
 # Check status
-helm status vdiff -n vdiff
-kubectl get pods -n vdiff
+helm status dfastllm -n dfastllm
+kubectl get pods -n dfastllm
 ```
 
 ### Custom Values
@@ -434,7 +434,7 @@ model:
   trustRemoteCode: true
 
 image:
-  repository: quay.io/mwaykole/vdiff
+  repository: quay.io/mwaykole/dfastllm
   tag: turbo-v9
   pullPolicy: IfNotPresent
 
@@ -477,7 +477,7 @@ monitoring:
 ```
 
 ```bash
-helm install vdiff ./deploy/helm/vdiff -f custom-values.yaml -n vdiff
+helm install dfastllm ./deploy/helm/dfastllm -f custom-values.yaml -n dfastllm
 ```
 
 ---
@@ -541,12 +541,12 @@ curl http://$ROUTE/metrics
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: vdiff-monitor
-  namespace: vdiff-experiments
+  name: dfastllm-monitor
+  namespace: dfastllm-experiments
 spec:
   selector:
     matchLabels:
-      app: vdiff
+      app: dfastllm
   endpoints:
     - port: http
       path: /metrics
@@ -555,7 +555,7 @@ spec:
 
 ### Grafana Dashboard
 
-Import the pre-built dashboard from `deploy/grafana/vdiff-dashboard.json`.
+Import the pre-built dashboard from `deploy/grafana/dfastllm-dashboard.json`.
 
 ---
 
@@ -575,19 +575,19 @@ flowchart TD
 
 ```bash
 # Check pod status
-kubectl get pods -n vdiff-experiments
+kubectl get pods -n dfastllm-experiments
 
 # View logs
-kubectl logs -f deployment/vdiff-llada-predictor -n vdiff-experiments
+kubectl logs -f deployment/dfastllm-llada-predictor -n dfastllm-experiments
 
 # Describe pod (for events)
-kubectl describe pod -l app=vdiff -n vdiff-experiments
+kubectl describe pod -l app=dfastllm -n dfastllm-experiments
 
 # Check GPU availability
 kubectl get nodes -o json | jq '.items[].status.allocatable["nvidia.com/gpu"]'
 
 # Exec into pod
-kubectl exec -it deployment/vdiff-llada-predictor -n vdiff-experiments -- bash
+kubectl exec -it deployment/dfastllm-llada-predictor -n dfastllm-experiments -- bash
 ```
 
 ---

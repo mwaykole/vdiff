@@ -80,7 +80,7 @@ This release consolidates redundant modules into a clean, unified architecture w
 ### Changed
 
 - **`__init__.py`** - Updated exports to include new unified modules
-- **Serving Runtime** - Now uses `quay.io/mwaykole/vdiff:v2.0-consolidated`
+- **Serving Runtime** - Now uses `quay.io/mwaykole/dfastllm:v2.0-consolidated`
 
 ### Deprecated
 

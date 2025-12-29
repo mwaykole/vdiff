@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dfastllm-source
-  namespace: vdiff-experiments
+  namespace: dfastllm-experiments
 data:
   install.sh: |
     #!/bin/bash
@@ -18,7 +18,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dfastllm-code
-  namespace: vdiff-experiments
+  namespace: dfastllm-experiments
 data:
   # Core modules - embedded directly
   __init__.py: |

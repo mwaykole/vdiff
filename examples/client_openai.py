@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """Example client using the OpenAI Python SDK.
 
-This example demonstrates how to use vdiff with the standard OpenAI client,
+This example demonstrates how to use dfastllm with the standard OpenAI client,
 showing that the API is fully compatible with existing OpenAI tooling.
 
 Requirements:
     pip install openai
 
 Usage:
-    # Start the vdiff server first:
-    # python -m vdiff.entrypoints.openai.api_server --model GSAI-ML/LLaDA-8B-Instruct
+    # Start the dfastllm server first:
+    # python -m dfastllm.entrypoints.openai.api_server --model GSAI-ML/LLaDA-8B-Instruct
 
     # Then run this script:
     python examples/client_openai.py
@@ -19,14 +19,14 @@ from openai import OpenAI
 
 
 def main():
-    # Create client pointing to vdiff server
+    # Create client pointing to dfastllm server
     client = OpenAI(
         base_url="http://localhost:8000/v1",
-        api_key="not-needed",  # vdiff doesn't require API key by default
+        api_key="not-needed",  # dfastllm doesn't require API key by default
     )
 
     print("=" * 60)
-    print("vdiff OpenAI-Compatible API Example")
+    print("dfastllm OpenAI-Compatible API Example")
     print("=" * 60)
 
     # Example 1: List available models

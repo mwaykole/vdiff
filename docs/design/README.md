@@ -1,6 +1,6 @@
 # dfastllm Design Documents
 
-This folder contains the formal design documentation for vdiff following software engineering best practices.
+This folder contains the formal design documentation for dfastllm following software engineering best practices.
 
 ## Documents
 
@@ -60,6 +60,6 @@ flowchart LR
 
 ---
 
-*For questions, contact the vdiff team.*
+*For questions, contact the dfastllm team.*
 
 

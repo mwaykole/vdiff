@@ -125,7 +125,7 @@ ignore = [
 ]
 
 [tool.ruff.isort]
-known-first-party = ["vdiff"]
+known-first-party = ["dfastllm"]
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
@@ -181,12 +181,12 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["vdiff"]
+source = ["dfastllm"]
 branch = true
 omit = [
     "tests/*",
-    "vdiff/__init__.py",
-    "vdiff/version.py",
+    "dfastllm/__init__.py",
+    "dfastllm/version.py",
 ]
 
 [tool.coverage.report]

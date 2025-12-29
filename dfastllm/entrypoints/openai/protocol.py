@@ -1,4 +1,4 @@
-"""OpenAI API Protocol definitions for vdiff.
+"""OpenAI API Protocol definitions for dfastllm.
 
 Pydantic models matching vLLM's OpenAI-compatible API exactly.
 """
@@ -49,7 +49,7 @@ class ModelCard(BaseModel):
     id: str
     object: str = "model"
     created: int = Field(default_factory=lambda: int(time.time()))
-    owned_by: str = "vdiff"
+    owned_by: str = "dfastllm"
     root: Optional[str] = None
     parent: Optional[str] = None
     permission: List[ModelPermission] = Field(default_factory=list)
@@ -99,7 +99,7 @@ class CompletionRequest(BaseModel):
     user: Optional[str] = Field(default=None, max_length=256)
     seed: Optional[int] = None
     
-    # vdiff specific extensions
+    # dfastllm specific extensions
     parallel_decoding: Optional[bool] = True
     confidence_threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
@@ -132,7 +132,7 @@ class CompletionResponse(BaseModel):
     choices: List[CompletionResponseChoice]
     usage: UsageInfo = Field(default_factory=UsageInfo)
     
-    # vdiff specific extensions
+    # dfastllm specific extensions
     parallel_tokens_decoded: Optional[int] = None
 
 
@@ -185,7 +185,7 @@ class ChatCompletionRequest(BaseModel):
     tools: Optional[List[Dict[str, Any]]] = None
     tool_choice: Optional[Union[str, Dict[str, Any]]] = None
     
-    # vdiff specific extensions
+    # dfastllm specific extensions
     parallel_decoding: Optional[bool] = True
     confidence_threshold: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
@@ -225,7 +225,7 @@ class ChatCompletionResponse(BaseModel):
     usage: UsageInfo = Field(default_factory=UsageInfo)
     system_fingerprint: Optional[str] = None
     
-    # vdiff specific extensions
+    # dfastllm specific extensions
     parallel_tokens_decoded: Optional[int] = None
 
 

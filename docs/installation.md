@@ -11,8 +11,8 @@
 ### From Source (Recommended)
 
 ```bash
-git clone https://github.com/your-org/vdiff.git
-cd vdiff
+git clone https://github.com/your-org/dfastllm.git
+cd dfastllm
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -20,19 +20,19 @@ pip install -e .
 ### From PyPI
 
 ```bash
-pip install vdiff
+pip install dfastllm
 ```
 
 ### Using Docker
 
 ```bash
-docker pull quay.io/your-org/vdiff:latest
+docker pull quay.io/your-org/dfastllm:latest
 ```
 
 ## Verify Installation
 
 ```bash
-python -c "import vdiff; print(vdiff.__version__)"
+python -c "import dfastllm; print(dfastllm.__version__)"
 ```
 
 ## GPU Setup

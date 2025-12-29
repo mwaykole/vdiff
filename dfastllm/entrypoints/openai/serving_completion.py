@@ -1,4 +1,4 @@
-"""OpenAI-compatible completion serving for vdiff.
+"""OpenAI-compatible completion serving for dfastllm.
 
 Handles /v1/completions endpoint matching vLLM's interface.
 """
@@ -40,7 +40,7 @@ class OpenAIServingCompletion:
         """Initialize completion serving.
         
         Args:
-            engine: The vdiff inference engine.
+            engine: The dfastllm inference engine.
             model_name: Primary model name.
             served_model_names: List of model names to serve.
         """
@@ -247,7 +247,7 @@ class OpenAIServingCompletion:
             permission = ModelPermission()
             model = ModelCard(
                 id=name,
-                owned_by="vdiff",
+                owned_by="dfastllm",
                 permission=[permission],
             )
             models.append(model)

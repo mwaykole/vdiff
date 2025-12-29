@@ -348,13 +348,13 @@ flowchart LR
 
 ```bash
 # Enable APD (default)
-vdiff --model llada --enable-apd
+dfastllm --model llada --enable-apd
 
 # Disable APD
-vdiff --model llada --disable-apd
+dfastllm --model llada --disable-apd
 
 # Custom APD settings
-vdiff --model llada \
+dfastllm --model llada \
     --apd-max-parallel 16 \
     --apd-threshold 0.2
 ```
@@ -406,7 +406,7 @@ flowchart LR
 ### Get Stats
 
 ```python
-# In VDiffEngine
+# In DFastLLMEngine
 stats = engine.get_stats()
 
 # APD-specific stats

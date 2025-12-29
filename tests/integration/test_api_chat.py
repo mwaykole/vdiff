@@ -217,6 +217,6 @@ class TestChatCompletionAPI:
         assert response.status_code == 200
         data = response.json()
         
-        # vdiff extension: parallel tokens decoded
+        # dfastllm extension: parallel tokens decoded
         if "parallel_tokens_decoded" in data:
             assert data["parallel_tokens_decoded"] == 4

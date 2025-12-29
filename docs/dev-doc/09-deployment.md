@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This document explains how to deploy vdiff in different environments.
+This document explains how to deploy dfastllm in different environments.
 
 ## Deployment Options
 
@@ -18,14 +18,14 @@ flowchart TB
 
 ## 1. Local Development
 
-The simplest way to run vdiff.
+The simplest way to run dfastllm.
 
 ### Installation
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/vdiff.git
-cd vdiff
+git clone https://github.com/your-org/dfastllm.git
+cd dfastllm
 
 # Create virtual environment
 python -m venv .venv
@@ -43,7 +43,7 @@ pip install -e .
 flowchart LR
     subgraph Local["Local Development"]
         INSTALL["pip install -e ."]
-        RUN["vdiff --model gpt2 --port 8000"]
+        RUN["dfastllm --model gpt2 --port 8000"]
         TEST["curl localhost:8000/health"]
     end
     
@@ -52,10 +52,10 @@ flowchart LR
 
 ```bash
 # Run server
-vdiff --model gpt2 --port 8000
+dfastllm --model gpt2 --port 8000
 
 # Or with more options
-vdiff \
+dfastllm \
     --model GSAI-ML/LLaDA-8B-Instruct \
     --trust-remote-code \
     --port 8000 \
@@ -87,7 +87,7 @@ flowchart TB
         end
         
         BUILD["docker build"]
-        IMAGE["vdiff:latest"]
+        IMAGE["dfastllm:latest"]
     end
     
     GPU --> BUILD
@@ -97,10 +97,10 @@ flowchart TB
 
 ```bash
 # GPU build (default)
-docker build -t vdiff:latest .
+docker build -t dfastllm:latest .
 
 # CPU build
-docker build --build-arg USE_CUDA=0 -t vdiff:cpu .
+docker build --build-arg USE_CUDA=0 -t dfastllm:cpu .
 ```
 
 ### Run Container
@@ -108,7 +108,7 @@ docker build --build-arg USE_CUDA=0 -t vdiff:cpu .
 ```mermaid
 flowchart TB
     subgraph Container["Docker Run"]
-        IMAGE["vdiff:latest"]
+        IMAGE["dfastllm:latest"]
         
         subgraph Mounts["Mounts"]
             MODEL["Model cache<br/>~/.cache/huggingface"]
@@ -132,20 +132,20 @@ flowchart TB
 ```bash
 # Run with GPU
 docker run -d \
-    --name vdiff \
+    --name dfastllm \
     --gpus all \
     -p 8000:8000 \
     -v ~/.cache/huggingface:/root/.cache/huggingface \
     -e VDIFF_MODEL=GSAI-ML/LLaDA-8B-Instruct \
-    vdiff:latest
+    dfastllm:latest
 
 # Run CPU only
 docker run -d \
-    --name vdiff \
+    --name dfastllm \
     -p 8000:8000 \
     -v ~/.cache/huggingface:/root/.cache/huggingface \
     -e VDIFF_MODEL=gpt2 \
-    vdiff:cpu
+    dfastllm:cpu
 ```
 
 ### Docker Compose
@@ -153,7 +153,7 @@ docker run -d \
 ```mermaid
 flowchart TB
     subgraph Compose["Docker Compose"]
-        VDIFF["vdiff-server"]
+        VDIFF["dfastllm-server"]
         PROM["prometheus<br/>(optional)"]
         GRAF["grafana<br/>(optional)"]
     end
@@ -166,7 +166,7 @@ flowchart TB
 docker-compose up -d
 
 # View logs
-docker-compose logs -f vdiff-server
+docker-compose logs -f dfastllm-server
 
 # Stop
 docker-compose down
@@ -187,8 +187,8 @@ flowchart TB
         end
         
         subgraph Pods["Pods"]
-            P1["vdiff-0"]
-            P2["vdiff-1"]
+            P1["dfastllm-0"]
+            P2["dfastllm-1"]
         end
     end
     
@@ -208,22 +208,22 @@ flowchart TB
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vdiff
+  name: dfastllm
   labels:
-    app: vdiff
+    app: dfastllm
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: vdiff
+      app: dfastllm
   template:
     metadata:
       labels:
-        app: vdiff
+        app: dfastllm
     spec:
       containers:
-      - name: vdiff
-        image: vdiff:latest
+      - name: dfastllm
+        image: dfastllm:latest
         ports:
         - containerPort: 8000
         env:
@@ -260,10 +260,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: vdiff
+  name: dfastllm
 spec:
   selector:
-    app: vdiff
+    app: dfastllm
   ports:
   - port: 8000
     targetPort: 8000
@@ -274,14 +274,14 @@ spec:
 
 ```bash
 # Create namespace
-kubectl create namespace vdiff
+kubectl create namespace dfastllm
 
 # Apply configuration
-kubectl apply -f deployment.yaml -n vdiff
+kubectl apply -f deployment.yaml -n dfastllm
 
 # Check status
-kubectl get pods -n vdiff
-kubectl logs -f deployment/vdiff -n vdiff
+kubectl get pods -n dfastllm
+kubectl logs -f deployment/dfastllm -n dfastllm
 ```
 
 ## 4. KServe Deployment
@@ -292,12 +292,12 @@ kubectl logs -f deployment/vdiff -n vdiff
 flowchart TB
     subgraph KServe["KServe Architecture"]
         subgraph Components["Components"]
-            RT["ServingRuntime<br/>Defines vdiff"]
+            RT["ServingRuntime<br/>Defines dfastllm"]
             IS["InferenceService<br/>Deploys model"]
         end
         
         subgraph Runtime["Runtime Pods"]
-            PRED["Predictor Pod<br/>vdiff container"]
+            PRED["Predictor Pod<br/>dfastllm container"]
         end
         
         subgraph Storage["Model Storage"]
@@ -317,22 +317,22 @@ flowchart TB
 apiVersion: serving.kserve.io/v1alpha1
 kind: ServingRuntime
 metadata:
-  name: vdiff-runtime
+  name: dfastllm-runtime
   labels:
     opendatahub.io/dashboard: "true"
 spec:
   annotations:
-    serving.kserve.io/display-name: "vdiff - Diffusion LLM Serving"
+    serving.kserve.io/display-name: "dfastllm - Diffusion LLM Serving"
   multiModel: false
   supportedModelFormats:
-  - name: vdiff
+  - name: dfastllm
     version: "1"
     autoSelect: true
   containers:
   - name: kserve-container
-    image: quay.io/your-org/vdiff:latest
+    image: quay.io/your-org/dfastllm:latest
     command:
-    - "vdiff"
+    - "dfastllm"
     args:
     - "--model"
     - "/mnt/models"
@@ -371,9 +371,9 @@ metadata:
 spec:
   predictor:
     model:
-      runtime: vdiff-runtime
+      runtime: dfastllm-runtime
       modelFormat:
-        name: vdiff
+        name: dfastllm
       storageUri: "pvc://model-storage/llada-8b"
     minReplicas: 1
     maxReplicas: 3
@@ -523,12 +523,12 @@ flowchart TB
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: vdiff-hpa
+  name: dfastllm-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: vdiff
+    name: dfastllm
   minReplicas: 1
   maxReplicas: 10
   metrics:
@@ -545,7 +545,7 @@ spec:
 ```mermaid
 flowchart LR
     subgraph Monitoring["Monitoring Stack"]
-        VDIFF["vdiff<br/>/metrics"]
+        VDIFF["dfastllm<br/>/metrics"]
         PROM["Prometheus"]
         GRAF["Grafana"]
     end
@@ -559,11 +559,11 @@ flowchart LR
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: vdiff-monitor
+  name: dfastllm-monitor
 spec:
   selector:
     matchLabels:
-      app: vdiff
+      app: dfastllm
   endpoints:
   - port: http
     path: /metrics

@@ -146,8 +146,8 @@ class TestSamplingParams:
         assert d["max_tokens"] == 100
         assert "parallel_decoding" in d
     
-    def test_vdiff_specific_params(self):
-        """Test vdiff-specific parameters."""
+    def test_dfastllm_specific_params(self):
+        """Test dfastllm-specific parameters."""
         params = SamplingParams(
             parallel_decoding=True,
             confidence_threshold=0.85,

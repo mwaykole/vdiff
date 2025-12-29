@@ -166,9 +166,9 @@
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| Old `vdiff` module references in tests | Medium | ✅ Fixed |
-| VDiffConfig → DFastLLMConfig | Medium | ✅ Fixed |
-| VDiffEngine → DFastLLMEngine | Medium | ✅ Fixed |
+| Old `dfastllm` module references in tests | Medium | ✅ Fixed |
+| DFastLLMConfig → DFastLLMConfig | Medium | ✅ Fixed |
+| DFastLLMEngine → DFastLLMEngine | Medium | ✅ Fixed |
 | Missing SOLID inheritance | Low | ✅ Fixed |
 | Corrupted documentation files | Low | ✅ Fixed |
 

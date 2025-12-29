@@ -44,7 +44,7 @@ def test_diffusion_generate(
         verbose: Print progress
     """
     print("=" * 60)
-    print("vdiff Diffusion Sampler Test")
+    print("dfastllm Diffusion Sampler Test")
     print("=" * 60)
     
     # Check if diffusion model
@@ -198,7 +198,7 @@ def test_diffusion_sampler_class(model_name: str = "gpt2"):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Test vdiff diffusion sampler locally")
+    parser = argparse.ArgumentParser(description="Test dfastllm diffusion sampler locally")
     parser.add_argument("--model", type=str, default="gpt2", help="Model name")
     parser.add_argument("--prompt", type=str, default="The future of AI is", help="Input prompt")
     parser.add_argument("--gen-length", type=int, default=16, help="Tokens to generate")

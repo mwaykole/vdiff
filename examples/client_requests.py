@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """Example client using the requests library.
 
-This example demonstrates how to use vdiff with plain HTTP requests,
+This example demonstrates how to use dfastllm with plain HTTP requests,
 useful for understanding the raw API or for languages without an OpenAI SDK.
 
 Requirements:
     pip install requests
 
 Usage:
-    # Start the vdiff server first:
-    # python -m vdiff.entrypoints.openai.api_server --model GSAI-ML/LLaDA-8B-Instruct
+    # Start the dfastllm server first:
+    # python -m dfastllm.entrypoints.openai.api_server --model GSAI-ML/LLaDA-8B-Instruct
 
     # Then run this script:
     python examples/client_requests.py
@@ -80,7 +80,7 @@ def get_metrics():
 
 def main():
     print("=" * 60)
-    print("vdiff Requests API Example")
+    print("dfastllm Requests API Example")
     print("=" * 60)
 
     # Check health
@@ -89,7 +89,7 @@ def main():
         health = check_health()
         print(f"   Status: {health['status']}")
     except requests.ConnectionError:
-        print("   ERROR: Cannot connect to server. Is vdiff running?")
+        print("   ERROR: Cannot connect to server. Is dfastllm running?")
         return
 
     # Get version

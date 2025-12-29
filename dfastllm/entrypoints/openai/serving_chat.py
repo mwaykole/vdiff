@@ -1,4 +1,4 @@
-"""OpenAI-compatible chat completion serving for vdiff.
+"""OpenAI-compatible chat completion serving for dfastllm.
 
 Handles /v1/chat/completions endpoint matching vLLM's interface.
 """
@@ -41,7 +41,7 @@ class OpenAIServingChat:
         """Initialize chat serving.
         
         Args:
-            engine: The vdiff inference engine.
+            engine: The dfastllm inference engine.
             model_name: Primary model name.
             served_model_names: List of model names to serve.
             chat_template: Optional custom chat template.

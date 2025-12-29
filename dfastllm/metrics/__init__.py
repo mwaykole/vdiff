@@ -1,4 +1,4 @@
-"""Prometheus metrics for vdiff serving."""
+"""Prometheus metrics for dfastllm serving."""
 
 from dfastllm.metrics.prometheus import (
     setup_metrics,

@@ -5,13 +5,13 @@
 ```bash
 docker run --gpus all -p 8000:8000 \
     -e MODEL_NAME=GSAI-ML/LLaDA-8B-Instruct \
-    quay.io/your-org/vdiff:latest
+    quay.io/your-org/dfastllm:latest
 ```
 
 ## Building Locally
 
 ```bash
-docker build -t vdiff:latest -f deploy/docker/Dockerfile .
+docker build -t dfastllm:latest -f deploy/docker/Dockerfile .
 ```
 
 ## Docker Compose
@@ -19,8 +19,8 @@ docker build -t vdiff:latest -f deploy/docker/Dockerfile .
 ```yaml
 version: '3.8'
 services:
-  vdiff:
-    image: quay.io/your-org/vdiff:latest
+  dfastllm:
+    image: quay.io/your-org/dfastllm:latest
     ports:
       - "8000:8000"
     environment:

@@ -1,6 +1,6 @@
-# VDiffEngine Deep Dive
+# DFastLLMEngine Deep Dive
 
-This document explains the `VDiffEngine` class - the heart of vdiff.
+This document explains the `DFastLLMEngine` class - the heart of dfastllm.
 
 ## What is the Engine?
 
@@ -12,7 +12,7 @@ The **Engine** is the central component that:
 
 ```mermaid
 flowchart TB
-    subgraph Engine["VDiffEngine"]
+    subgraph Engine["DFastLLMEngine"]
         LOAD["Load Model"]
         QUEUE["Manage Queue"]
         GEN["Generate Text"]
@@ -28,9 +28,9 @@ flowchart TB
 
 ```mermaid
 classDiagram
-    class VDiffEngine {
+    class DFastLLMEngine {
         %% Configuration
-        +config: VDiffConfig
+        +config: DFastLLMConfig
         
         %% State
         -_state: EngineState
@@ -142,7 +142,7 @@ flowchart TB
 ```python
 def __init__(
     self,
-    config: VDiffConfig,                    # Configuration object
+    config: DFastLLMConfig,                    # Configuration object
     max_queue_size: Optional[int] = None,   # Max pending requests
     max_concurrent: Optional[int] = None,   # Max parallel generations
     default_timeout: Optional[float] = None, # Request timeout
@@ -572,7 +572,7 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     participant Client
-    participant Engine as VDiffEngine
+    participant Engine as DFastLLMEngine
     participant Queue as Request Queue
     participant Tokenizer
     participant Diffusion as DiffusionSampler
@@ -610,7 +610,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    subgraph Engine["VDiffEngine Summary"]
+    subgraph Engine["DFastLLMEngine Summary"]
         INIT["Initialize"]
         LOAD["Load Model"]
         READY["Ready"]

@@ -68,7 +68,7 @@ spec:
           echo ""
           
           echo "Installing dfastllm..."
-          pip install --no-cache-dir --no-deps --target=/tmp/dfastllm_pkg git+https://github.com/mwaykole/vdiff.git@main 2>&1 | tail -3
+          pip install --no-cache-dir --no-deps --target=/tmp/dfastllm_pkg git+https://github.com/mwaykole/dfastllm.git@main 2>&1 | tail -3
           export PYTHONPATH="/tmp/dfastllm_pkg:$PYTHONPATH"
           echo "✅ dfastllm installed"
           echo ""

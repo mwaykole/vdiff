@@ -61,8 +61,8 @@ class TestCompletionRequest:
         
         assert request.prompt == ["Prompt 1", "Prompt 2"]
     
-    def test_vdiff_extensions(self):
-        """Test vdiff-specific extensions."""
+    def test_dfastllm_extensions(self):
+        """Test dfastllm-specific extensions."""
         request = CompletionRequest(
             model="test-model",
             prompt="Test",
@@ -197,8 +197,8 @@ class TestModelList:
     def test_with_models(self):
         """Test model list with models."""
         models = [
-            ModelCard(id="model-1", owned_by="vdiff"),
-            ModelCard(id="model-2", owned_by="vdiff"),
+            ModelCard(id="model-1", owned_by="dfastllm"),
+            ModelCard(id="model-2", owned_by="dfastllm"),
         ]
         model_list = ModelList(data=models)
         

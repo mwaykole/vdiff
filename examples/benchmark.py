@@ -1,14 +1,14 @@
 #!/usr/bin/env python
-"""Simple benchmarking script for vdiff Serving.
+"""Simple benchmarking script for dfastllm Serving.
 
-This script measures throughput and latency of the vdiff server.
+This script measures throughput and latency of the dfastllm server.
 
 Requirements:
     pip install requests numpy
 
 Usage:
-    # Start the vdiff server first:
-    # python -m vdiff.entrypoints.openai.api_server --model GSAI-ML/LLaDA-8B-Instruct
+    # Start the dfastllm server first:
+    # python -m dfastllm.entrypoints.openai.api_server --model GSAI-ML/LLaDA-8B-Instruct
 
     # Basic benchmark:
     python examples/benchmark.py
@@ -169,12 +169,12 @@ def print_results(stats: Dict[str, Any]):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="vdiff Benchmark")
+    parser = argparse.ArgumentParser(description="dfastllm Benchmark")
     parser.add_argument(
         "--base-url",
         type=str,
         default="http://localhost:8000",
-        help="Base URL of the vdiff server",
+        help="Base URL of the dfastllm server",
     )
     parser.add_argument(
         "--model",
@@ -217,7 +217,7 @@ def main():
             print(f"Server not healthy: {response.status_code}")
             return
     except requests.ConnectionError:
-        print("Cannot connect to server. Is vdiff running?")
+        print("Cannot connect to server. Is dfastllm running?")
         return
     
     print("Server is healthy!")

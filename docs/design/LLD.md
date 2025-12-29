@@ -2,7 +2,7 @@
 
 **Document Version:** 2.0.0  
 **Last Updated:** December 24, 2024  
-**Author:** vdiff Team  
+**Author:** dfastllm Team  
 **Status:** Approved
 
 ---
@@ -26,7 +26,7 @@
 ## 1. Document Overview
 
 ### 1.1 Purpose
-This Low-Level Design (LLD) document provides detailed technical specifications for implementing vdiff components, including class designs, algorithms, data structures, and coding standards.
+This Low-Level Design (LLD) document provides detailed technical specifications for implementing dfastllm components, including class designs, algorithms, data structures, and coding standards.
 
 ### 1.2 Scope
 - Detailed class and interface designs
@@ -62,7 +62,7 @@ flowchart TB
     end
     
     subgraph Engine["engine/"]
-        VDE[vdiff_engine.py]
+        VDE[dfastllm_engine.py]
         DG[diffusion_generator.py]
         SCH[scheduler.py]
         DS[diffusion_sampler.py]
@@ -104,7 +104,7 @@ flowchart TB
 | `protocol.py` | Request/response data models |
 | `serving_completion.py` | Completion request processing |
 | `serving_chat.py` | Chat request processing |
-| `vdiff_engine.py` | Engine orchestration and lifecycle |
+| `dfastllm_engine.py` | Engine orchestration and lifecycle |
 | `diffusion_generator.py` | Unified token generation |
 | `scheduler.py` | Request scheduling and batching |
 | `diffusion_sampler.py` | Core diffusion algorithm |
@@ -774,7 +774,7 @@ def form_batch(
 
 ```mermaid
 classDiagram
-    class VDiffError {
+    class DFastLLMError {
         <<abstract>>
         +message: str
         +request_id: Optional~str~
@@ -809,12 +809,12 @@ classDiagram
         +available_models: List~str~
     }
     
-    VDiffError <|-- ModelLoadError
-    VDiffError <|-- GenerationError
-    VDiffError <|-- ValidationError
-    VDiffError <|-- TimeoutError
-    VDiffError <|-- QueueFullError
-    VDiffError <|-- ModelNotFoundError
+    DFastLLMError <|-- ModelLoadError
+    DFastLLMError <|-- GenerationError
+    DFastLLMError <|-- ValidationError
+    DFastLLMError <|-- TimeoutError
+    DFastLLMError <|-- QueueFullError
+    DFastLLMError <|-- ModelNotFoundError
 ```
 
 ### 8.2 Error Handling Patterns
@@ -1017,7 +1017,7 @@ class TestCompletionAPI:
 
 ### 11.1 Overview
 
-vdiff follows SOLID principles for maintainable, extensible code:
+dfastllm follows SOLID principles for maintainable, extensible code:
 
 ```mermaid
 mindmap
@@ -1208,7 +1208,7 @@ engine = Engine(
 
 ### 11.7 Interface Definitions
 
-Located in `vdiff/engine/interfaces.py`:
+Located in `dfastllm/engine/interfaces.py`:
 
 ```mermaid
 classDiagram
@@ -1362,8 +1362,8 @@ class MainClass:
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0.0 | Dec 2024 | vdiff Team | Initial version |
-| 2.0.0 | Dec 2024 | vdiff Team | Added unified modules, coding standards |
+| 1.0.0 | Dec 2024 | dfastllm Team | Initial version |
+| 2.0.0 | Dec 2024 | dfastllm Team | Added unified modules, coding standards |
 
 ---
 

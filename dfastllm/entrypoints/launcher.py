@@ -1,6 +1,6 @@
-"""Server launcher for vdiff.
+"""Server launcher for dfastllm.
 
-Provides utilities for launching the vdiff server programmatically.
+Provides utilities for launching the dfastllm server programmatically.
 """
 
 import logging
@@ -30,7 +30,7 @@ def launch_server(
     background: bool = False,
     **kwargs,
 ) -> Optional[multiprocessing.Process]:
-    """Launch the vdiff server.
+    """Launch the dfastllm server.
     
     Args:
         model: Name or path of the model to serve.
@@ -77,7 +77,7 @@ def launch_server(
             args=(config,),
         )
         process.start()
-        logger.info(f"vdiff server started in background (PID: {process.pid})")
+        logger.info(f"dfastllm server started in background (PID: {process.pid})")
         return process
     else:
         _run_server_process(config)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Download model script for vdiff Serving.
+"""Download model script for dfastllm Serving.
 
 Downloads models from HuggingFace Hub for offline use.
 
@@ -76,7 +76,7 @@ def download_model(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Download models for vdiff Serving"
+        description="Download models for dfastllm Serving"
     )
     parser.add_argument(
         "model_name",

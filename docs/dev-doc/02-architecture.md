@@ -1,10 +1,10 @@
 # System Architecture
 
-This document explains how vdiff is built and how all the pieces fit together.
+This document explains how dfastllm is built and how all the pieces fit together.
 
 ## High-Level Overview
 
-vdiff has **5 main layers**:
+dfastllm has **5 main layers**:
 
 ```mermaid
 flowchart TB
@@ -17,7 +17,7 @@ flowchart TB
     end
     
     subgraph L3["Layer 3: Engine"]
-        ENGINE[VDiffEngine]
+        ENGINE[DFastLLMEngine]
     end
     
     subgraph L4["Layer 4: Generation"]
@@ -73,14 +73,14 @@ flowchart TB
     end
     
     subgraph EngineLayer["Engine Layer"]
-        subgraph VDiffEngine["VDiffEngine"]
+        subgraph DFastLLMEngine["DFastLLMEngine"]
             STATE["Engine State"]
             QUEUE["Request Queue"]
             STATS["Statistics"]
         end
         
         TOK["TokenizerWrapper"]
-        CONFIG["VDiffConfig"]
+        CONFIG["DFastLLMConfig"]
     end
     
     subgraph GenerationLayer["Generation Layer"]
@@ -100,9 +100,9 @@ flowchart TB
     MW6 --> Routes
     R3 --> SC
     R4 --> SH
-    SC --> VDiffEngine
-    SH --> VDiffEngine
-    VDiffEngine --> TOK
+    SC --> DFastLLMEngine
+    SH --> DFastLLMEngine
+    DFastLLMEngine --> TOK
     TOK --> DIFF
     TOK --> APD
     DIFF --> HF
@@ -116,7 +116,7 @@ The **Client Layer** is where requests come from.
 
 ```mermaid
 flowchart LR
-    subgraph Clients["Different ways to call vdiff"]
+    subgraph Clients["Different ways to call dfastllm"]
         subgraph Python["Python"]
             PY["from openai import OpenAI<br/>client = OpenAI(base_url='...')"]
         end
@@ -130,7 +130,7 @@ flowchart LR
         end
     end
     
-    Python --> API[vdiff API]
+    Python --> API[dfastllm API]
     Curl --> API
     Browser --> API
 ```
@@ -140,7 +140,7 @@ flowchart LR
 ```python
 from openai import OpenAI
 
-# Create client pointing to vdiff server
+# Create client pointing to dfastllm server
 client = OpenAI(
     base_url="http://localhost:8000/v1",
     api_key="not-needed"
@@ -223,11 +223,11 @@ flowchart LR
 
 ## Layer 3: Engine Layer
 
-The **Engine** is the brain of vdiff. It manages everything.
+The **Engine** is the brain of dfastllm. It manages everything.
 
 ```mermaid
 flowchart TB
-    subgraph VDiffEngine["VDiffEngine Class"]
+    subgraph DFastLLMEngine["DFastLLMEngine Class"]
         subgraph State["State Management"]
             S1["UNINITIALIZED"]
             S2["LOADING"]
@@ -422,7 +422,7 @@ sequenceDiagram
     participant API as API Server
     participant MW as Middleware
     participant SC as ServingCompletion
-    participant Engine as VDiffEngine
+    participant Engine as DFastLLMEngine
     participant Diff as DiffusionSampler
     participant Model as HF Model
     
@@ -457,7 +457,7 @@ sequenceDiagram
 ```mermaid
 flowchart TB
     subgraph Config["Configuration"]
-        VC[VDiffConfig]
+        VC[DFastLLMConfig]
         MC[ModelConfig]
     end
     
@@ -467,7 +467,7 @@ flowchart TB
     end
     
     subgraph Engine["Engine"]
-        VE[VDiffEngine]
+        VE[DFastLLMEngine]
         TW[TokenizerWrapper]
     end
     
@@ -522,7 +522,7 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    subgraph Summary["vdiff Architecture Summary"]
+    subgraph Summary["dfastllm Architecture Summary"]
         A["Client sends request"]
         B["API Server receives"]
         C["Middleware processes"]

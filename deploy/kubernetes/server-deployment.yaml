@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: vdiff-experiments
+  name: dfastllm-experiments
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: vdiff-server-config
-  namespace: vdiff-experiments
+  name: dfastllm-server-config
+  namespace: dfastllm-experiments
 data:
   VDIFF_MODEL: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
   VDIFF_MAX_MODEL_LEN: "2048"
@@ -35,7 +35,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dfastllm-server
-  namespace: vdiff-experiments
+  namespace: dfastllm-experiments
   labels:
     app: dfastllm
     version: v2.0.0
@@ -64,7 +64,7 @@ spec:
           set -e
           echo "=== Cloning dfastllm from GitHub ==="
           cd /tmp
-          git clone --depth 1 https://github.com/mwaykole/vdiff.git dfastllm-src
+          git clone --depth 1 https://github.com/mwaykole/dfastllm.git dfastllm-src
           
           # Add package to Python path
           export PYTHONPATH="/tmp/dfastllm-src:$PYTHONPATH"
@@ -100,7 +100,7 @@ spec:
           value: "1"
         envFrom:
         - configMapRef:
-            name: vdiff-server-config
+            name: dfastllm-server-config
         resources:
           requests:
             memory: "8Gi"
@@ -158,7 +158,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dfastllm-service
-  namespace: vdiff-experiments
+  namespace: dfastllm-experiments
   labels:
     app: dfastllm
 spec:
@@ -175,7 +175,7 @@ apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: dfastllm-route
-  namespace: vdiff-experiments
+  namespace: dfastllm-experiments
 spec:
   to:
     kind: Service

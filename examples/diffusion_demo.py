@@ -3,7 +3,7 @@
 
 This script demonstrates the core diffusion generation algorithm
 without the full serving infrastructure. Useful for understanding
-how vdiff and APD work.
+how dfastllm and APD work.
 
 Usage:
     python examples/diffusion_demo.py --model gpt2

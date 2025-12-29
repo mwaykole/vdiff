@@ -1,6 +1,6 @@
-# Contributing to vdiff Serving
+# Contributing to dfastllm Serving
 
-Thank you for your interest in contributing to vdiff Serving! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to dfastllm Serving! This document provides guidelines and information for contributors.
 
 ## Getting Started
 
@@ -9,8 +9,8 @@ Thank you for your interest in contributing to vdiff Serving! This document prov
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/vdiff-serving.git
-   cd vdiff-serving
+   git clone https://github.com/YOUR_USERNAME/dfastllm-serving.git
+   cd dfastllm-serving
    ```
 3. Create a virtual environment:
    ```bash
@@ -99,7 +99,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## vLLM Compatibility
 
-vdiff aims to maintain 100% API compatibility with vLLM. When making changes:
+dfastllm aims to maintain 100% API compatibility with vLLM. When making changes:
 
 1. Ensure request/response formats match vLLM exactly
 2. Maintain CLI argument compatibility
@@ -113,16 +113,16 @@ make test-compat
 
 ## Adding New Features
 
-### vdiff-Specific Extensions
+### dfastllm-Specific Extensions
 
-When adding vdiff-specific features (not in vLLM):
+When adding dfastllm-specific features (not in vLLM):
 
 1. Make them **optional** - don't break vLLM compatibility
 2. Use separate request/response fields
 3. Document the extension clearly
 4. Add appropriate tests
 
-### Fast-vdiff Optimizations
+### Fast-dfastllm Optimizations
 
 For performance optimizations:
 
@@ -136,7 +136,7 @@ For performance optimizations:
 ### Bug Reports
 
 Include:
-- vdiff version
+- dfastllm version
 - Python version
 - GPU/CUDA version
 - Minimal reproduction code

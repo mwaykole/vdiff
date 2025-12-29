@@ -209,7 +209,7 @@ class TestModelsAPI:
         assert data["object"] == "list"
         assert len(data["data"]) > 0
         assert data["data"][0]["id"] == "test-model"
-        assert data["data"][0]["owned_by"] == "vdiff"
+        assert data["data"][0]["owned_by"] == "dfastllm"
 
 
 class TestHealthAPI:
@@ -235,4 +235,4 @@ class TestMetricsAPI:
         assert response.status_code == 200
         # Metrics should be in Prometheus format
         content = response.text
-        assert "vdiff" in content or "Prometheus" in content or "#" in content
+        assert "dfastllm" in content or "Prometheus" in content or "#" in content

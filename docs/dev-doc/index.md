@@ -1,10 +1,10 @@
-# vdiff Developer Documentation
+# dfastllm Developer Documentation
 
-Welcome to the vdiff developer documentation. This guide explains **everything** about the vdiff codebase, from basic concepts to implementation details.
+Welcome to the dfastllm developer documentation. This guide explains **everything** about the dfastllm codebase, from basic concepts to implementation details.
 
-## What is vdiff?
+## What is dfastllm?
 
-**vdiff** is a server that runs AI language models (like ChatGPT) and lets other programs talk to them through a web API.
+**dfastllm** is a server that runs AI language models (like ChatGPT) and lets other programs talk to them through a web API.
 
 ```mermaid
 flowchart LR
@@ -12,7 +12,7 @@ flowchart LR
         APP[Your Code]
     end
     
-    subgraph vdiff["vdiff Server"]
+    subgraph dfastllm["dfastllm Server"]
         API[API Server]
         ENGINE[Engine]
         MODEL[AI Model]
@@ -26,9 +26,9 @@ flowchart LR
     API -->|"Response: 'Hi there!'"| APP
 ```
 
-### What makes vdiff special?
+### What makes dfastllm special?
 
-vdiff is designed for **Diffusion Language Models** - a new type of AI that generates text differently than traditional models.
+dfastllm is designed for **Diffusion Language Models** - a new type of AI that generates text differently than traditional models.
 
 ```mermaid
 flowchart TB
@@ -74,7 +74,7 @@ docs/dev-doc/
 3. Then [03-project-structure.md](03-project-structure.md) - Know where things are
 
 ### If you want to understand the code:
-1. [04-engine.md](04-engine.md) - The brain of vdiff
+1. [04-engine.md](04-engine.md) - The brain of dfastllm
 2. [05-diffusion.md](05-diffusion.md) - How text is generated
 3. [10-code-walkthrough.md](10-code-walkthrough.md) - Code explanations
 
@@ -98,7 +98,7 @@ flowchart TB
     end
     
     subgraph Engine["Engine Layer"]
-        VDIFF[VDiffEngine]
+        VDIFF[DFastLLMEngine]
         QUEUE[Request Queue]
         TOKENIZER[Tokenizer]
     end

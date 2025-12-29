@@ -110,7 +110,7 @@ class TestMetricsNaming:
         
         setup_metrics("test-model")
         
-        # Check metric names contain vdiff prefix
+        # Check metric names contain dfastllm prefix
         # These would be the actual Prometheus metric objects if available
         if request_success_total is not None:
-            assert "vdiff" in str(request_success_total._name).lower() or "request_success" in str(request_success_total._name)
+            assert "dfastllm" in str(request_success_total._name).lower() or "request_success" in str(request_success_total._name)

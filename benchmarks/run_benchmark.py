@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""vdiff Benchmark Suite
+"""dfastllm Benchmark Suite
 
-Run benchmarks against a vdiff server to measure performance.
+Run benchmarks against a dfastllm server to measure performance.
 
 Usage:
     # Start server first:
-    vdiff --model gpt2 --port 8000
+    dfastllm --model gpt2 --port 8000
 
     # Run benchmark:
     python benchmarks/run_benchmark.py --url http://localhost:8000
@@ -106,10 +106,10 @@ async def run_benchmark(
     max_tokens: int = 64,
     warmup_requests: int = 5,
 ) -> BenchmarkResult:
-    """Run benchmark against vdiff server."""
+    """Run benchmark against dfastllm server."""
     
     print(f"\n{'='*60}")
-    print("vdiff Benchmark")
+    print("dfastllm Benchmark")
     print(f"{'='*60}")
     print(f"URL:          {url}")
     print(f"Requests:     {num_requests}")
@@ -235,14 +235,14 @@ def print_results(result: BenchmarkResult) -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="vdiff Benchmark Suite",
+        description="dfastllm Benchmark Suite",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--url",
         type=str,
         default="http://localhost:8000",
-        help="vdiff server URL",
+        help="dfastllm server URL",
     )
     parser.add_argument(
         "--requests", "-n",

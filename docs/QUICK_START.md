@@ -53,22 +53,22 @@ flowchart TD
 # Pull and run
 docker run -d --gpus all \
   -p 8000:8000 \
-  --name vdiff \
-  quay.io/mwaykole/vdiff:turbo-v9 \
+  --name dfastllm \
+  quay.io/mwaykole/dfastllm:turbo-v9 \
   --model GSAI-ML/LLaDA-8B-Instruct \
   --trust-remote-code \
   --enable-apd
 
 # Check logs
-docker logs -f vdiff
+docker logs -f dfastllm
 ```
 
 ### Option 2: pip Install
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/vdiff.git
-cd vdiff
+git clone https://github.com/your-org/dfastllm.git
+cd dfastllm
 
 # Create virtual environment
 python -m venv venv
@@ -151,7 +151,7 @@ curl -X POST http://localhost:8000/v1/chat/completions \
 ```python
 from openai import OpenAI
 
-# Connect to vdiff server
+# Connect to dfastllm server
 client = OpenAI(
     base_url="http://localhost:8000/v1",
     api_key="not-needed"  # Optional
@@ -235,7 +235,7 @@ python -m dfastllm.entrypoints.openai.api_server \
 
 ### For Long Outputs (500+ tokens)
 
-vdiff excels here with parallel decoding:
+dfastllm excels here with parallel decoding:
 
 ```python
 response = client.completions.create(

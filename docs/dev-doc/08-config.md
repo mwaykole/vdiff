@@ -1,17 +1,17 @@
 # Configuration Guide
 
-This document explains every configuration option in vdiff.
+This document explains every configuration option in dfastllm.
 
 ## Configuration Overview
 
-vdiff can be configured in **3 ways**:
+dfastllm can be configured in **3 ways**:
 
 ```mermaid
 flowchart TB
     subgraph Methods["Configuration Methods"]
         CLI["1. Command Line<br/>--model llada"]
         ENV["2. Environment Variables<br/>VDIFF_MODEL=llada"]
-        CODE["3. Python Code<br/>VDiffConfig(model='llada')"]
+        CODE["3. Python Code<br/>DFastLLMConfig(model='llada')"]
     end
     
     subgraph Priority["Priority (High to Low)"]
@@ -25,13 +25,13 @@ flowchart TB
     CODE --> P3
 ```
 
-## VDiffConfig Class
+## DFastLLMConfig Class
 
 The main configuration class:
 
 ```mermaid
 classDiagram
-    class VDiffConfig {
+    class DFastLLMConfig {
         %% Model Settings
         +model: str
         +tokenizer: str
@@ -97,13 +97,13 @@ flowchart LR
 
 ```bash
 # HuggingFace model
-vdiff --model GSAI-ML/LLaDA-8B-Instruct --trust-remote-code
+dfastllm --model GSAI-ML/LLaDA-8B-Instruct --trust-remote-code
 
 # Local model
-vdiff --model /path/to/model
+dfastllm --model /path/to/model
 
 # Specific revision
-vdiff --model meta-llama/Llama-2-7b-hf --revision v1.0
+dfastllm --model meta-llama/Llama-2-7b-hf --revision v1.0
 ```
 
 ### 2. Server Settings
@@ -127,14 +127,14 @@ flowchart LR
 
 ```bash
 # Local development
-vdiff --model llada --host 127.0.0.1 --port 3000
+dfastllm --model llada --host 127.0.0.1 --port 3000
 
 # Production with API key
-vdiff --model llada --api-key "sk-your-secret-key"
+dfastllm --model llada --api-key "sk-your-secret-key"
 
 # Using environment variable
 export VDIFF_API_KEY="sk-secret"
-vdiff --model llada
+dfastllm --model llada
 ```
 
 ### 3. Diffusion Settings
@@ -160,13 +160,13 @@ flowchart LR
 
 ```bash
 # Faster generation (fewer steps)
-vdiff --model llada --diffusion-steps 32
+dfastllm --model llada --diffusion-steps 32
 
 # More deterministic output
-vdiff --model llada --temperature 0.5
+dfastllm --model llada --temperature 0.5
 
 # More creative output
-vdiff --model llada --temperature 1.5
+dfastllm --model llada --temperature 1.5
 ```
 
 ### 4. APD Settings
@@ -190,16 +190,16 @@ flowchart LR
 
 ```bash
 # Enable APD (default)
-vdiff --model llada --enable-apd
+dfastllm --model llada --enable-apd
 
 # Disable APD for debugging
-vdiff --model llada --disable-apd
+dfastllm --model llada --disable-apd
 
 # Aggressive APD (more parallelism)
-vdiff --model llada --apd-max-parallel 16 --apd-threshold 0.2
+dfastllm --model llada --apd-max-parallel 16 --apd-threshold 0.2
 
 # Conservative APD (less parallelism, higher quality)
-vdiff --model llada --apd-max-parallel 4 --apd-threshold 0.5
+dfastllm --model llada --apd-max-parallel 4 --apd-threshold 0.5
 ```
 
 ### 5. Production Settings
@@ -229,14 +229,14 @@ flowchart LR
 
 ```bash
 # High-load production
-vdiff --model llada \
+dfastllm --model llada \
     --max-concurrent-requests 8 \
     --max-queue-size 512 \
     --rate-limit-requests 1000 \
     --workers 4
 
 # Development (lenient limits)
-vdiff --model llada \
+dfastllm --model llada \
     --max-concurrent-requests 2 \
     --rate-limit-requests 0  # Disable rate limiting
 ```
@@ -262,15 +262,15 @@ flowchart LR
 
 ```bash
 # Maximum performance (GPU)
-vdiff --model llada \
+dfastllm --model llada \
     --compile \
     --flash-attention
 
 # Low memory (8-bit quantization)
-vdiff --model llada --quantization 8bit
+dfastllm --model llada --quantization 8bit
 
 # Minimal memory (4-bit quantization)
-vdiff --model llada --quantization 4bit
+dfastllm --model llada --quantization 4bit
 ```
 
 ## Configuration Diagram
@@ -288,7 +288,7 @@ flowchart TB
             M["1. CLI<br/>2. ENV<br/>3. Default"]
         end
         
-        subgraph VDC["VDiffConfig"]
+        subgraph VDC["DFastLLMConfig"]
             MODEL["Model Settings"]
             SERVER["Server Settings"]
             DIFF["Diffusion Settings"]
@@ -298,7 +298,7 @@ flowchart TB
         end
         
         subgraph Use["Used By"]
-            ENG["VDiffEngine"]
+            ENG["DFastLLMEngine"]
             API["API Server"]
         end
     end
@@ -320,13 +320,13 @@ flowchart TB
 ### Basic Configuration
 
 ```python
-from vdiff import VDiffConfig
+from dfastllm import DFastLLMConfig
 
 # Minimal config
-config = VDiffConfig(model="GSAI-ML/LLaDA-8B-Instruct")
+config = DFastLLMConfig(model="GSAI-ML/LLaDA-8B-Instruct")
 
 # With options
-config = VDiffConfig(
+config = DFastLLMConfig(
     model="GSAI-ML/LLaDA-8B-Instruct",
     dtype="float16",
     trust_remote_code=True,
@@ -338,7 +338,7 @@ config = VDiffConfig(
 ### Full Configuration
 
 ```python
-config = VDiffConfig(
+config = DFastLLMConfig(
     # Model
     model="GSAI-ML/LLaDA-8B-Instruct",
     tokenizer=None,  # Use model's tokenizer
@@ -422,7 +422,7 @@ export VDIFF_QUANTIZATION=""
 ### Development
 
 ```bash
-vdiff \
+dfastllm \
     --model gpt2 \
     --host 127.0.0.1 \
     --port 8000 \
@@ -433,7 +433,7 @@ vdiff \
 ### Production (Small Model)
 
 ```bash
-vdiff \
+dfastllm \
     --model GSAI-ML/LLaDA-8B-Instruct \
     --trust-remote-code \
     --dtype float16 \
@@ -446,7 +446,7 @@ vdiff \
 ### Production (Large Model)
 
 ```bash
-vdiff \
+dfastllm \
     --model GSAI-ML/LLaDA-70B-Instruct \
     --trust-remote-code \
     --quantization 8bit \
@@ -461,7 +461,7 @@ vdiff \
 ### Memory Constrained
 
 ```bash
-vdiff \
+dfastllm \
     --model llada \
     --quantization 4bit \
     --max-concurrent-requests 1 \
@@ -484,5 +484,5 @@ flowchart TB
 
 ## Next Steps
 
-👉 [09-deployment.md](09-deployment.md) - How to deploy vdiff
+👉 [09-deployment.md](09-deployment.md) - How to deploy dfastllm
 
