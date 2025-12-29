@@ -30,6 +30,12 @@ data:
   # Optimizations
   VDIFF_COMPILE: "true"
   VDIFF_FLASH_ATTENTION: "true"
+  
+  # Fix HuggingFace offline mode (container image sets HF_HUB_OFFLINE=1 by default)
+  HF_HUB_OFFLINE: "0"
+  TRANSFORMERS_OFFLINE: "0"
+  HF_HUB_DISABLE_PROGRESS_BARS: "1"
+  HF_HOME: "/tmp/hf_cache"
 ---
 apiVersion: apps/v1
 kind: Deployment

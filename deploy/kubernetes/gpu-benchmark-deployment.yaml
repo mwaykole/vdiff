@@ -3,6 +3,7 @@ kind: ConfigMap
 metadata:
   name: dfastllm-gpu-config
 data:
+  # Model configuration
   VDIFF_MODEL: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"
   VDIFF_MAX_MODEL_LEN: "2048"
   VDIFF_TRUST_REMOTE_CODE: "true"
@@ -14,6 +15,11 @@ data:
   VDIFF_MOR_ENABLED: "true"
   VDIFF_COMPILE: "true"
   VDIFF_FLASH_ATTENTION: "true"
+  # Fix HuggingFace offline mode (container image sets HF_HUB_OFFLINE=1 by default)
+  HF_HUB_OFFLINE: "0"
+  TRANSFORMERS_OFFLINE: "0"
+  HF_HUB_DISABLE_PROGRESS_BARS: "1"
+  HF_HOME: "/tmp/hf_cache"
 ---
 apiVersion: batch/v1
 kind: Job
