@@ -1,0 +1,251 @@
+{
+  "metadata": {
+    "timestamp": "2025-12-29T12:15:41.203286",
+    "base_url": "http://localhost:8000",
+    "framework": "dfastllm",
+    "version": "2.1.0"
+  },
+  "summary": {
+    "total_tests": 11,
+    "passed": 8,
+    "failed": 3,
+    "pass_rate": 72.72727272727273,
+    "total_benchmarks": 6,
+    "defects_found": 3
+  },
+  "functional_tests": [
+    {
+      "name": "health_endpoint",
+      "passed": true,
+      "duration_ms": 752.97,
+      "error": null,
+      "details": {
+        "status": "healthy",
+        "state": "ready",
+        "model_loaded": true,
+        "device": "cuda",
+        "queue_size": 0,
+        "queue_capacity": 256,
+        "uptime_seconds": 200.6457118988037,
+        "gpu_memory": {
+          "used_mb": 2107.30126953125,
+          "total_mb": 45457.5625,
+          "utilization": 0.04635755094724338
+        }
+      }
+    },
+    {
+      "name": "models_endpoint",
+      "passed": true,
+      "duration_ms": 246.93,
+      "error": null,
+      "details": {
+        "model_count": 1
+      }
+    },
+    {
+      "name": "chat_completion_basic",
+      "passed": true,
+      "duration_ms": 627.32,
+      "error": null,
+      "details": {
+        "response": "Yes, you are correct! The formula for calculating 2+2 is: 2 +",
+        "usage": {
+          "prompt_tokens": 24,
+          "total_tokens": 44,
+          "completion_tokens": 20
+        }
+      }
+    },
+    {
+      "name": "completion_basic",
+      "passed": true,
+      "duration_ms": 810.71,
+      "error": null,
+      "details": {
+        "response": "to find your gift, cultivate your talent, and share it with others. How has your involvement with the NGO affected your personal and professional",
+        "usage": {
+          "prompt_tokens": 6,
+          "total_tokens": 36,
+          "completion_tokens": 30
+        }
+      }
+    },
+    {
+      "name": "multi_turn_conversation",
+      "passed": false,
+      "duration_ms": 815.5,
+      "error": null,
+      "details": {
+        "response": "I don't have access to your personal information or context. However, you can try searching for your name on a search engine or calling the company"
+      }
+    },
+    {
+      "name": "temperature_variation",
+      "passed": false,
+      "duration_ms": 1039.09,
+      "error": null,
+      "details": {
+        "low_temp_results": [
+          "2\n\nBingo",
+          "2 \u2192 2 =",
+          "2, 3+"
+        ],
+        "low_temp_consistent": false
+      }
+    },
+    {
+      "name": "empty_prompt",
+      "passed": true,
+      "duration_ms": 248.11,
+      "error": null,
+      "details": {
+        "status_code": 400
+      }
+    },
+    {
+      "name": "max_tokens_zero",
+      "passed": true,
+      "duration_ms": 248.34,
+      "error": null,
+      "details": {
+        "status_code": 422
+      }
+    },
+    {
+      "name": "long_prompt",
+      "passed": true,
+      "duration_ms": 645.77,
+      "error": null,
+      "details": {
+        "prompt_length": 6500
+      }
+    },
+    {
+      "name": "invalid_model",
+      "passed": false,
+      "duration_ms": 440.21,
+      "error": null,
+      "details": {
+        "status_code": 200
+      }
+    },
+    {
+      "name": "unicode_handling",
+      "passed": true,
+      "duration_ms": 813.5,
+      "error": null,
+      "details": {
+        "response": "\"ni hao\"  hello\n\nTranslation: \u4f60\u597d\nN\u01d0 h\u01ceo \u4f60\u597d\n\nVocabul"
+      }
+    }
+  ],
+  "benchmarks": [
+    {
+      "name": "single_request_latency",
+      "requests": 10,
+      "errors": 0,
+      "success_rate": 100.0,
+      "avg_latency_ms": 1098.53,
+      "p50_latency_ms": 1181.62,
+      "p95_latency_ms": 1186.63,
+      "p99_latency_ms": 1186.63,
+      "tokens_generated": 453,
+      "tokens_per_second": 41.24
+    },
+    {
+      "name": "concurrent_4_workers",
+      "requests": 20,
+      "errors": 0,
+      "success_rate": 100.0,
+      "avg_latency_ms": 2530.55,
+      "p50_latency_ms": 2689.82,
+      "p95_latency_ms": 3829.67,
+      "p99_latency_ms": 3829.67,
+      "tokens_generated": 526,
+      "tokens_per_second": 10.39
+    },
+    {
+      "name": "throughput_30s",
+      "requests": 52,
+      "errors": 0,
+      "success_rate": 100.0,
+      "avg_latency_ms": 588.13,
+      "p50_latency_ms": 618.43,
+      "p95_latency_ms": 643.34,
+      "p99_latency_ms": 689.24,
+      "tokens_generated": 938,
+      "tokens_per_second": 30.67
+    },
+    {
+      "name": "tokens_10",
+      "requests": 3,
+      "errors": 0,
+      "success_rate": 100.0,
+      "avg_latency_ms": 435.66,
+      "p50_latency_ms": 433.52,
+      "p95_latency_ms": 440.09,
+      "p99_latency_ms": 440.09,
+      "tokens_generated": 30,
+      "tokens_per_second": 22.95
+    },
+    {
+      "name": "tokens_50",
+      "requests": 3,
+      "errors": 0,
+      "success_rate": 100.0,
+      "avg_latency_ms": 1178.83,
+      "p50_latency_ms": 1174.89,
+      "p95_latency_ms": 1192.19,
+      "p99_latency_ms": 1192.19,
+      "tokens_generated": 150,
+      "tokens_per_second": 42.41
+    },
+    {
+      "name": "tokens_100",
+      "requests": 3,
+      "errors": 0,
+      "success_rate": 100.0,
+      "avg_latency_ms": 1432.52,
+      "p50_latency_ms": 1502.25,
+      "p95_latency_ms": 1736.85,
+      "p99_latency_ms": 1736.85,
+      "tokens_generated": 190,
+      "tokens_per_second": 44.21
+    }
+  ],
+  "defects": [
+    {
+      "id": "DEF-001",
+      "test": "multi_turn_conversation",
+      "severity": "MEDIUM",
+      "description": "Test failed",
+      "details": {
+        "response": "I don't have access to your personal information or context. However, you can try searching for your name on a search engine or calling the company"
+      }
+    },
+    {
+      "id": "DEF-002",
+      "test": "temperature_variation",
+      "severity": "MEDIUM",
+      "description": "Test failed",
+      "details": {
+        "low_temp_results": [
+          "2\n\nBingo",
+          "2 \u2192 2 =",
+          "2, 3+"
+        ],
+        "low_temp_consistent": false
+      }
+    },
+    {
+      "id": "DEF-003",
+      "test": "invalid_model",
+      "severity": "MEDIUM",
+      "description": "Test failed",
+      "details": {
+        "status_code": 200
+      }
+    }
+  ]
+}

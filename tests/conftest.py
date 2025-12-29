@@ -5,9 +5,9 @@ import asyncio
 from typing import Generator, AsyncGenerator
 from unittest.mock import MagicMock, patch
 
-from vdiff.config import VDiffConfig
-from vdiff.engine.sampling_params import SamplingParams
-from vdiff.engine.outputs import CompletionOutput, RequestOutput, RequestMetrics
+from dfastllm.config import DFastLLMConfig as VDiffConfig
+from dfastllm.engine.sampling_params import SamplingParams
+from dfastllm.engine.outputs import CompletionOutput, RequestOutput, RequestMetrics
 
 
 @pytest.fixture(scope="session")

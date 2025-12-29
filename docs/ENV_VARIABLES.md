@@ -40,6 +40,21 @@ Quick reference for all dfastllm environment variables.
 | `VDIFF_ADAPTIVE_STEPS` | `true` | Dynamically reduce steps |
 | `VDIFF_EARLY_STOPPING` | `true` | Stop when all tokens unmasked |
 
+## 🔄 Mixture of Recursions (MoR)
+
+MoR enables adaptive compute allocation per token (30-50% compute savings).
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VDIFF_MOR_ENABLED` | `true` | Enable MoR adaptive compute |
+| `VDIFF_MOR_MIN_RECURSIONS` | `1` | Min refinement iterations (easy tokens) |
+| `VDIFF_MOR_MAX_RECURSIONS` | `4` | Max refinement iterations (hard tokens) |
+| `VDIFF_MOR_CONF_HIGH` | `0.9` | Confidence above = easy token |
+| `VDIFF_MOR_CONF_LOW` | `0.5` | Confidence below = hard token |
+| `VDIFF_MOR_STRATEGY` | `confidence` | Strategy: confidence, entropy, gradient, hybrid |
+| `VDIFF_MOR_BATCH_DEPTHS` | `true` | Batch tokens by recursion depth |
+| `VDIFF_MOR_LOG_STATS` | `false` | Log detailed MoR statistics |
+
 ## 🔒 Production Settings
 
 | Variable | Default | Description |
@@ -83,6 +98,8 @@ python -m dfastllm.entrypoints.openai.api_server
 export VDIFF_MODEL="GSAI-ML/LLaDA-8B-Instruct"
 export VDIFF_TRUST_REMOTE_CODE="true"
 export VDIFF_ENABLE_APD="true"
+export VDIFF_MOR_ENABLED="true"
+export VDIFF_MOR_MAX_RECURSIONS="4"
 export VDIFF_MAX_CONCURRENT="8"
 export VDIFF_RATE_LIMIT_REQUESTS="1000"
 export VDIFF_API_KEY="your-secret-key"

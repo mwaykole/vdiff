@@ -9,6 +9,7 @@ serving diffusion LLMs like LLaDA and Dream with production features:
 - Comprehensive health checks
 - Structured logging
 - Request timeouts
+- MoR (Mixture of Recursions) for adaptive compute allocation
 
 Example:
     >>> from dfastllm.engine import DFastLLMEngine, SamplingParams
@@ -47,7 +48,14 @@ from dfastllm.engine.apd import (
     APDDecoder,
     APDConfig,
     APDStats,
-    apd_generate,
+)
+from dfastllm.engine.mor_decoder import (
+    MoRDecoder,
+    MoRConfig,
+    MoRStats,
+    MoRDiffusionSampler,
+    RouterStrategy,
+    mor_diffusion_generate,
 )
 from dfastllm.engine.attention_cache import (
     AttentionCache,
@@ -92,6 +100,7 @@ __all__ = [
     # Diffusion generation
     "DiffusionSampler",
     "DiffusionSamplerConfig",
+    "MoRDiffusionSampler",
     "diffusion_generate",
     "is_diffusion_model",
     
@@ -99,7 +108,14 @@ __all__ = [
     "APDDecoder",
     "APDConfig",
     "APDStats",
-    "apd_generate",
+    
+    # MoR (Mixture of Recursions)
+    "MoRDecoder",
+    "MoRConfig",
+    "MoRStats",
+    "MoRDiffusionSampler",
+    "RouterStrategy",
+    "mor_diffusion_generate",
     
     # Optimization modules
     "AttentionCache",

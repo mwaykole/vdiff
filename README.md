@@ -4,12 +4,12 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-2.0.0-green.svg)](https://github.com/mwaykole/dfastllm)
+[![Version](https://img.shields.io/badge/version-2.1.0-green.svg)](https://github.com/mwaykole/dfastllm)
 [![Production Ready](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)]()
 
 dfastllm is a **production-grade** serving framework specifically designed for **Diffusion Language Models** (LLaDA, Dream, MDLM). It provides OpenAI-compatible APIs with enterprise features like rate limiting, health checks, and graceful shutdown. Deploy anywhere: bare metal, Docker, Kubernetes, or any cloud platform.
 
-> **🚀 v2.0 Released!** Code consolidation with unified `DiffusionGenerator` and `Scheduler` modules. Cleaner API, better maintainability.
+> **🚀 v2.1 Released!** Added Mixture of Recursions (MoR) for 30-50% compute savings. Adaptive refinement allocates more compute to difficult tokens automatically.
 
 ## 🎯 Why Diffusion LLMs?
 
@@ -36,6 +36,7 @@ Diffusion Language Models offer unique advantages over autoregressive models:
 ### Inference Features
 - **OpenAI-Compatible API**: Drop-in replacement for OpenAI client libraries
 - **APD (Adaptive Parallel Decoding)**: 2-4x faster inference
+- **MoR (Mixture of Recursions)**: 30-50% compute savings with adaptive refinement
 - **Streaming Support**: Real-time token-by-token output via SSE
 - **Multi-Model Support**: LLaDA, Dream, MDLM, and custom diffusion models
 - **CPU/GPU/TPU Support**: Run on any hardware
@@ -145,10 +146,10 @@ curl -X POST http://localhost:8080/v1/completions \
 dfastllm/
 ├── dfastllm/                 # Main package
 │   ├── engine/               # Core inference engine
-│   │   ├── diffusion_generator.py  # Unified generation
-│   │   ├── scheduler.py      # Request scheduling
+│   │   ├── diffusion_sampler.py   # Diffusion generation
+│   │   ├── mor_decoder.py    # Mixture of Recursions
 │   │   ├── apd.py            # Adaptive Parallel Decoding
-│   │   └── interfaces.py     # SOLID interfaces
+│   │   └── dfastllm_engine.py    # Production engine
 │   ├── entrypoints/          # API servers
 │   │   └── openai/           # OpenAI-compatible API
 │   └── config.py             # Configuration
@@ -167,6 +168,7 @@ dfastllm/
 - [Deployment Guide](docs/DEPLOYMENT_GUIDE.md)
 - [Performance Tuning](docs/PERFORMANCE_TUNING.md)
 - [User Guide](docs/USER_GUIDE.md)
+- [MoR Guide](docs/MOR_GUIDE.md) - Mixture of Recursions for adaptive compute
 
 ## 🔧 Configuration
 
@@ -174,10 +176,13 @@ dfastllm/
 from dfastllm.config import DFastLLMConfig
 
 config = DFastLLMConfig(
-    model_name="microsoft/phi-2",
-    device="cuda",  # or "cpu", "tpu"
-    max_batch_size=32,
+    model="microsoft/phi-2",
+    trust_remote_code=True,
+    # Performance
     enable_apd=True,
+    enable_mor=True,  # Mixture of Recursions (30-50% compute savings)
+    mor_max_recursions=4,
+    # Production
     rate_limit_requests=100,
     rate_limit_window=60,
 )

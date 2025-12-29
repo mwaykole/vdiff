@@ -5,6 +5,21 @@ All notable changes to dfastllm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2024-12-29
+
+### Added
+- **Mixture of Recursions (MoR)**: Inference-time adaptive compute allocation
+  - 30-50% compute reduction without quality loss
+  - 20-40% faster inference
+  - Works with existing models (no retraining required)
+  - Multiple strategies: confidence, entropy, gradient, hybrid
+- New environment variables: `VDIFF_MOR_ENABLED`, `VDIFF_MOR_MAX_RECURSIONS`, etc.
+- `MoRDecoder` class for fine-grained control
+- `MoRDiffusionSampler` for easy integration
+- `mor_enhanced_diffusion_generate` function for direct use
+- Comprehensive MoR documentation (`docs/MOR_GUIDE.md`)
+- Unit tests for MoR functionality
+
 ## [2.0.0] - 2024-12-25
 
 ### Changed

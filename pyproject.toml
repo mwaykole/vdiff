@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dfastllm"
-version = "2.0.0"
+version = "2.1.0"
 description = "Production-ready inference server for Diffusion Language Models"
 readme = "README.md"
 license = {text = "Apache-2.0"}

@@ -55,6 +55,13 @@ class DiffusionSamplerConfig:
     use_adaptive_steps: bool = True  # Dynamically reduce steps based on confidence
     confidence_threshold: float = 0.95  # Threshold for adaptive early stopping
     enable_attention_cache: bool = False  # Cache attention maps (experimental)
+    
+    # Mixture of Recursions (MoR) options
+    enable_mor: bool = True  # Enable MoR adaptive compute
+    mor_min_recursions: int = 1  # Minimum recursions for easy tokens
+    mor_max_recursions: int = 4  # Maximum recursions for hard tokens
+    mor_confidence_high: float = 0.9  # Above this = skip extra recursions
+    mor_confidence_low: float = 0.5  # Below this = apply max recursions
 
 
 @torch.no_grad()
@@ -165,6 +172,129 @@ def _vectorized_topk_unmask(
 
 
 @torch.no_grad()
+def _apply_mor_refinement(
+    model,
+    x: "torch.Tensor",
+    logits: "torch.Tensor",
+    mask_index: "torch.Tensor",
+    attention_mask: Optional["torch.Tensor"],
+    min_recursions: int = 1,
+    max_recursions: int = 4,
+    confidence_high: float = 0.9,
+    confidence_low: float = 0.5,
+    use_amp: bool = False,
+    amp_dtype: "torch.dtype" = None,
+) -> "torch.Tensor":
+    """Apply Mixture of Recursions refinement to logits.
+    
+    MoR allocates variable compute to tokens based on difficulty:
+    - High confidence tokens: Skip refinement (already good)
+    - Medium confidence: Light refinement
+    - Low confidence tokens: Maximum refinement passes
+    
+    This implements Option 2 (inference-level MoR) which works with
+    existing models without retraining.
+    
+    Args:
+        model: The diffusion model.
+        x: Current token sequence.
+        logits: Initial logits from model.
+        mask_index: Boolean mask of positions to consider.
+        attention_mask: Optional attention mask.
+        min_recursions: Minimum recursion depth.
+        max_recursions: Maximum recursion depth.
+        confidence_high: Above this = skip refinement.
+        confidence_low: Below this = max refinement.
+        use_amp: Whether to use automatic mixed precision.
+        amp_dtype: Data type for AMP.
+    
+    Returns:
+        Refined logits with adaptive compute applied.
+    """
+    if max_recursions <= 1:
+        return logits
+    
+    device = logits.device
+    batch_size, seq_len, vocab_size = logits.shape
+    
+    # Compute confidence for each masked position
+    probs = F.softmax(logits.float(), dim=-1)
+    confidence = probs.max(dim=-1).values  # (batch, seq_len)
+    
+    # Identify tokens by difficulty level
+    # High confidence: no extra refinement needed
+    high_conf_mask = mask_index & (confidence >= confidence_high)
+    # Low confidence: needs maximum refinement
+    low_conf_mask = mask_index & (confidence < confidence_low)
+    # Medium: linear interpolation
+    medium_mask = mask_index & ~high_conf_mask & ~low_conf_mask
+    
+    # Count how many tokens need refinement
+    needs_refinement = low_conf_mask | medium_mask
+    num_needing_refinement = needs_refinement.sum().item()
+    
+    if num_needing_refinement == 0:
+        # All tokens are confident, skip refinement
+        return logits
+    
+    # Calculate recursion depths
+    # Map confidence to recursion count (inverse relationship)
+    # confidence_low -> max_recursions, confidence_high -> min_recursions
+    confidence_range = max(confidence_high - confidence_low, 1e-6)
+    normalized_conf = (confidence - confidence_low) / confidence_range
+    normalized_conf = normalized_conf.clamp(0, 1)
+    
+    # Inverse: low confidence = high recursions
+    recursion_depth = max_recursions - (max_recursions - min_recursions) * normalized_conf
+    recursion_depth = recursion_depth.round().long()
+    
+    # Only consider masked positions
+    recursion_depth = torch.where(mask_index, recursion_depth, torch.zeros_like(recursion_depth))
+    
+    # Get unique depths > 1 that need processing
+    unique_depths = torch.unique(recursion_depth[needs_refinement])
+    unique_depths = unique_depths[unique_depths > 1]
+    
+    if len(unique_depths) == 0:
+        return logits
+    
+    refined_logits = logits.clone()
+    
+    # Process by depth level for efficiency (batch similar work)
+    for depth in sorted(unique_depths.tolist(), reverse=True):
+        # Find all positions needing at least this depth
+        needs_this_depth = needs_refinement & (recursion_depth >= depth)
+        
+        if not needs_this_depth.any():
+            continue
+        
+        # Additional forward pass
+        if use_amp and amp_dtype is not None:
+            with torch.autocast(device_type="cuda", dtype=amp_dtype):
+                outputs = model(x, attention_mask=attention_mask)
+                new_logits = outputs.logits if hasattr(outputs, 'logits') else outputs
+            new_logits = new_logits.float()
+        else:
+            outputs = model(x, attention_mask=attention_mask)
+            new_logits = outputs.logits if hasattr(outputs, 'logits') else outputs
+        
+        # Blend with existing logits using weighted average
+        # Weight decreases with each iteration for stability
+        blend_weight = 1.0 / depth
+        
+        # Apply blending only to positions needing this refinement
+        for b in range(batch_size):
+            positions = needs_this_depth[b].nonzero(as_tuple=True)[0]
+            for pos in positions:
+                refined_logits[b, pos] = (
+                    (1 - blend_weight) * refined_logits[b, pos] +
+                    blend_weight * new_logits[b, pos]
+                )
+    
+    return refined_logits
+
+
+@torch.no_grad()
 def diffusion_generate(
     model,
     prompt: "torch.Tensor",
@@ -181,6 +311,11 @@ def diffusion_generate(
     use_mixed_precision: bool = True,
     use_adaptive_steps: bool = False,
     confidence_threshold: float = 0.95,
+    enable_mor: bool = False,
+    mor_min_recursions: int = 1,
+    mor_max_recursions: int = 4,
+    mor_confidence_high: float = 0.9,
+    mor_confidence_low: float = 0.5,
 ) -> "torch.Tensor":
     """Generate text using masked diffusion (optimized).
     
@@ -324,6 +459,22 @@ def diffusion_generate(
                 logits, un_logits = logits[:batch_size], logits[batch_size:]
                 logits = un_logits + (cfg_scale + 1) * (logits - un_logits)
             
+            # MoR: Mixture of Recursions - Adaptive refinement for difficult tokens
+            if enable_mor and mask_index.any():
+                logits = _apply_mor_refinement(
+                    model=model,
+                    x=x,
+                    logits=logits,
+                    mask_index=mask_index,
+                    attention_mask=attention_mask,
+                    min_recursions=mor_min_recursions,
+                    max_recursions=mor_max_recursions,
+                    confidence_high=mor_confidence_high,
+                    confidence_low=mor_confidence_low,
+                    use_amp=use_amp,
+                    amp_dtype=amp_dtype,
+                )
+            
             # Sample with Gumbel noise
             logits_with_noise = add_gumbel_noise(logits, temperature, use_float32_gumbel)
             x0 = torch.argmax(logits_with_noise, dim=-1)
@@ -412,7 +563,8 @@ class DiffusionSampler:
             f"DiffusionSampler initialized: mask_id={self.config.mask_id}, "
             f"early_stop={self.config.enable_early_stopping}, "
             f"mixed_precision={self.config.use_mixed_precision}, "
-            f"adaptive_steps={self.config.use_adaptive_steps}"
+            f"adaptive_steps={self.config.use_adaptive_steps}, "
+            f"mor={self.config.enable_mor} (recursions={self.config.mor_min_recursions}-{self.config.mor_max_recursions})"
         )
     
     def generate(
@@ -471,6 +623,11 @@ class DiffusionSampler:
             use_mixed_precision=self.config.use_mixed_precision,
             use_adaptive_steps=self.config.use_adaptive_steps,
             confidence_threshold=self.config.confidence_threshold,
+            enable_mor=self.config.enable_mor,
+            mor_min_recursions=self.config.mor_min_recursions,
+            mor_max_recursions=self.config.mor_max_recursions,
+            mor_confidence_high=self.config.mor_confidence_high,
+            mor_confidence_low=self.config.mor_confidence_low,
         )
     
     def decode(

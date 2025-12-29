@@ -98,6 +98,14 @@ class DFastLLMConfig:
     use_attention_cache: bool = False  # Cache attention maps (experimental)
     attention_cache_interval: int = 4  # Recompute attention every N steps
     
+    # Mixture of Recursions (MoR) - Adaptive compute per token
+    enable_mor: bool = True  # Enable MoR for adaptive compute allocation
+    mor_min_recursions: int = 1  # Minimum refinement iterations for easy tokens
+    mor_max_recursions: int = 4  # Maximum refinement iterations for hard tokens
+    mor_confidence_high: float = 0.9  # Above this = skip extra recursions
+    mor_confidence_low: float = 0.5  # Below this = apply max recursions
+    mor_strategy: str = "confidence"  # confidence, entropy, gradient, hybrid
+    
     # Dynamic quantization (native PyTorch, no bitsandbytes)
     use_dynamic_quantization: bool = False  # Apply INT8 dynamic quantization
     
@@ -195,6 +203,13 @@ class DFastLLMConfig:
             use_attention_cache=os.getenv("VDIFF_ATTENTION_CACHE", "false").lower() == "true",
             attention_cache_interval=cls._safe_int(os.getenv("VDIFF_ATTENTION_CACHE_INTERVAL", "4"), 4),
             use_dynamic_quantization=os.getenv("VDIFF_DYNAMIC_QUANT", "false").lower() == "true",
+            # MoR settings
+            enable_mor=os.getenv("VDIFF_MOR_ENABLED", "true").lower() == "true",
+            mor_min_recursions=cls._safe_int(os.getenv("VDIFF_MOR_MIN_RECURSIONS", "1"), 1),
+            mor_max_recursions=cls._safe_int(os.getenv("VDIFF_MOR_MAX_RECURSIONS", "4"), 4),
+            mor_confidence_high=cls._safe_float(os.getenv("VDIFF_MOR_CONF_HIGH", "0.9"), 0.9),
+            mor_confidence_low=cls._safe_float(os.getenv("VDIFF_MOR_CONF_LOW", "0.5"), 0.5),
+            mor_strategy=os.getenv("VDIFF_MOR_STRATEGY", "confidence"),
         )
     
     def to_dict(self) -> Dict[str, Any]:

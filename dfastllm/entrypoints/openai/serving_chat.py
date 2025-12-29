@@ -134,22 +134,22 @@ class OpenAIServingChat:
         
         # Validate model
         if request.model not in self.served_model_names:
-            logger.warning(
-                f"Model {request.model} not in served models, using {self.model_name}"
+            raise ValueError(
+                f"Model '{request.model}' not found. Available models: {self.served_model_names}"
             )
         
         # Format messages into prompt
         prompt = self._format_messages(request.messages)
         
-        # Build sampling params
+        # Build sampling params (use default only if None, not if 0)
         sampling_params = SamplingParams(
-            n=request.n or 1,
-            presence_penalty=request.presence_penalty or 0.0,
-            frequency_penalty=request.frequency_penalty or 0.0,
-            temperature=request.temperature or 1.0,
-            top_p=request.top_p or 1.0,
+            n=request.n if request.n is not None else 1,
+            presence_penalty=request.presence_penalty if request.presence_penalty is not None else 0.0,
+            frequency_penalty=request.frequency_penalty if request.frequency_penalty is not None else 0.0,
+            temperature=request.temperature if request.temperature is not None else 1.0,
+            top_p=request.top_p if request.top_p is not None else 1.0,
             stop=request.stop,
-            max_tokens=request.max_tokens or 1024,
+            max_tokens=request.max_tokens if request.max_tokens is not None else 1024,
             seed=request.seed,
             parallel_decoding=request.parallel_decoding if request.parallel_decoding is not None else True,
             confidence_threshold=request.confidence_threshold,
