@@ -1,0 +1,120 @@
+{
+  "metadata": {
+    "timestamp": "2025-12-29T12:29:44.308775",
+    "benchmark_config": {
+      "warmup_requests": 1,
+      "latency_requests": 5,
+      "throughput_duration": 15,
+      "concurrent_requests": 10,
+      "concurrency_levels": [
+        1,
+        2,
+        4
+      ],
+      "token_counts": [
+        10,
+        50
+      ]
+    }
+  },
+  "summary": {
+    "frameworks_tested": 2,
+    "frameworks_available": 1,
+    "fastest_avg_latency": "dfastllm",
+    "highest_throughput": "dfastllm"
+  },
+  "framework_results": [
+    {
+      "name": "dfastllm",
+      "url": "http://localhost:8000",
+      "model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "available": true,
+      "error": null,
+      "latency": {
+        "avg_ms": 775.67,
+        "p50_ms": 617.11,
+        "p95_ms": 1172.34,
+        "p99_ms": 1172.34,
+        "min_ms": 436.11,
+        "max_ms": 1172.34
+      },
+      "ttft": {
+        "avg_ms": 0.0,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0
+      },
+      "throughput": {
+        "tokens_per_second": 26.84,
+        "requests_per_second": 2.06
+      },
+      "concurrent_performance": {
+        "1": {
+          "avg_latency_ms": 596.62,
+          "p95_latency_ms": 838.8,
+          "errors": 0,
+          "throughput_rps": 1.68
+        },
+        "2": {
+          "avg_latency_ms": 935.85,
+          "p95_latency_ms": 2144.27,
+          "errors": 0,
+          "throughput_rps": 1.07
+        },
+        "4": {
+          "avg_latency_ms": 1961.92,
+          "p95_latency_ms": 2690.12,
+          "errors": 0,
+          "throughput_rps": 0.51
+        }
+      },
+      "token_scaling": {
+        "10": {
+          "avg_latency_ms": 435.73,
+          "avg_tokens": 10,
+          "ms_per_token": 43.57
+        },
+        "50": {
+          "avg_latency_ms": 1172.24,
+          "avg_tokens": 50,
+          "ms_per_token": 23.44
+        }
+      },
+      "gpu_memory_mb": 2131.68
+    },
+    {
+      "name": "vLLM",
+      "url": "http://localhost:8001",
+      "model": "unknown",
+      "available": false,
+      "error": "HTTPConnectionPool(host='localhost', port=8001): Max retries exceeded with url: /health (Caused by NewConnectionError(\"HTTPConnection(host='localhost', port=8001): Failed to establish a new connection: [Errno 111] Connection refused\"))",
+      "latency": {
+        "avg_ms": 0.0,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0,
+        "p99_ms": 0.0,
+        "min_ms": 0.0,
+        "max_ms": 0.0
+      },
+      "ttft": {
+        "avg_ms": 0.0,
+        "p50_ms": 0.0,
+        "p95_ms": 0.0
+      },
+      "throughput": {
+        "tokens_per_second": 0.0,
+        "requests_per_second": 0.0
+      },
+      "concurrent_performance": {},
+      "token_scaling": {},
+      "gpu_memory_mb": 0.0
+    }
+  ],
+  "comparison": {
+    "error": "Not enough frameworks available for comparison"
+  },
+  "recommendations": [
+    "For lowest latency: Use dfastllm (avg 776ms)",
+    "For highest throughput: Use dfastllm (26.8 tokens/sec)",
+    "dfastllm handles 4 concurrent requests with 0 errors"
+  ]
+}
