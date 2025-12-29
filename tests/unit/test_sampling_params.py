@@ -1,7 +1,7 @@
 """Unit tests for SamplingParams."""
 
 import pytest
-from vdiff.engine.sampling_params import SamplingParams
+from dfastllm.engine.sampling_params import SamplingParams
 
 
 class TestSamplingParams:

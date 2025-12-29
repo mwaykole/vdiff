@@ -1,0 +1,255 @@
+{
+  "timestamp": "2025-12-29T16:08:10.860231",
+  "version": "2.3.0",
+  "environment": "Python 3.14.2",
+  "total_passed": 31,
+  "total_failed": 0,
+  "total_skipped": 0,
+  "total_errors": 0,
+  "pass_rate": 100.0,
+  "duration_ms": 1839.2956256866455,
+  "suites": [
+    {
+      "name": "Import Tests",
+      "passed": 14,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "tests": [
+        {
+          "name": "Import Main package (dfastllm)",
+          "status": "PASS",
+          "duration_ms": 0.35452842712402344,
+          "error_message": null
+        },
+        {
+          "name": "Import Configuration (dfastllm.config)",
+          "status": "PASS",
+          "duration_ms": 1.9605159759521484,
+          "error_message": null
+        },
+        {
+          "name": "Import Engine module (dfastllm.engine)",
+          "status": "PASS",
+          "duration_ms": 1588.3066654205322,
+          "error_message": null
+        },
+        {
+          "name": "Import SOLID base classes (dfastllm.engine.base)",
+          "status": "PASS",
+          "duration_ms": 0.0007152557373046875,
+          "error_message": null
+        },
+        {
+          "name": "Import Hybrid engine (dfastllm.engine.hybrid_engine)",
+          "status": "PASS",
+          "duration_ms": 0.0007152557373046875,
+          "error_message": null
+        },
+        {
+          "name": "Import Continuous batching (dfastllm.engine.continuous_batching)",
+          "status": "PASS",
+          "duration_ms": 0.0007152557373046875,
+          "error_message": null
+        },
+        {
+          "name": "Import Entropy controller (dfastllm.engine.entropy_controller)",
+          "status": "PASS",
+          "duration_ms": 0.0002384185791015625,
+          "error_message": null
+        },
+        {
+          "name": "Import MoR decoder (dfastllm.engine.mor_decoder)",
+          "status": "PASS",
+          "duration_ms": 0.00095367431640625,
+          "error_message": null
+        },
+        {
+          "name": "Import Sampling params (dfastllm.engine.sampling_params)",
+          "status": "PASS",
+          "duration_ms": 0.0011920928955078125,
+          "error_message": null
+        },
+        {
+          "name": "Import Output types (dfastllm.engine.outputs)",
+          "status": "PASS",
+          "duration_ms": 0.000476837158203125,
+          "error_message": null
+        },
+        {
+          "name": "Import APD module (dfastllm.engine.apd)",
+          "status": "PASS",
+          "duration_ms": 0.0007152557373046875,
+          "error_message": null
+        },
+        {
+          "name": "Import Main engine (dfastllm.engine.dfastllm_engine)",
+          "status": "PASS",
+          "duration_ms": 0.0007152557373046875,
+          "error_message": null
+        },
+        {
+          "name": "Import OpenAI protocol (dfastllm.entrypoints.openai.protocol)",
+          "status": "PASS",
+          "duration_ms": 246.80280685424805,
+          "error_message": null
+        },
+        {
+          "name": "Import CLI module (dfastllm.cli)",
+          "status": "PASS",
+          "duration_ms": 1.4388561248779297,
+          "error_message": null
+        }
+      ]
+    },
+    {
+      "name": "SOLID Architecture Tests",
+      "passed": 4,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "tests": [
+        {
+          "name": "BaseStats Inheritance (Liskov)",
+          "status": "PASS",
+          "duration_ms": 0.020503997802734375,
+          "error_message": null
+        },
+        {
+          "name": "BaseConfig Inheritance (Open/Closed)",
+          "status": "PASS",
+          "duration_ms": 0.017404556274414062,
+          "error_message": null
+        },
+        {
+          "name": "BaseCache Inheritance (Interface Segregation)",
+          "status": "PASS",
+          "duration_ms": 0.014781951904296875,
+          "error_message": null
+        },
+        {
+          "name": "EntropyComputer Utilities (Single Responsibility)",
+          "status": "PASS",
+          "duration_ms": 0.0026226043701171875,
+          "error_message": null
+        }
+      ]
+    },
+    {
+      "name": "Hybrid Engine Tests",
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "tests": [
+        {
+          "name": "HybridConfig Creation",
+          "status": "PASS",
+          "duration_ms": 0.006198883056640625,
+          "error_message": null
+        },
+        {
+          "name": "HybridStats Tracking",
+          "status": "PASS",
+          "duration_ms": 0.010251998901367188,
+          "error_message": null
+        },
+        {
+          "name": "HybridMode Enum Values",
+          "status": "PASS",
+          "duration_ms": 0.0040531158447265625,
+          "error_message": null
+        }
+      ]
+    },
+    {
+      "name": "Continuous Batching Tests",
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "tests": [
+        {
+          "name": "BatcherConfig Creation",
+          "status": "PASS",
+          "duration_ms": 0.0030994415283203125,
+          "error_message": null
+        },
+        {
+          "name": "PrefixCache Operations",
+          "status": "PASS",
+          "duration_ms": 0.026226043701171875,
+          "error_message": null
+        },
+        {
+          "name": "PrefixCache LRU Eviction",
+          "status": "PASS",
+          "duration_ms": 0.07510185241699219,
+          "error_message": null
+        }
+      ]
+    },
+    {
+      "name": "Entropy Controller Tests",
+      "passed": 2,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "tests": [
+        {
+          "name": "EntropyConfig Creation",
+          "status": "PASS",
+          "duration_ms": 0.004291534423828125,
+          "error_message": null
+        },
+        {
+          "name": "EntropyStats Calculation",
+          "status": "PASS",
+          "duration_ms": 0.00762939453125,
+          "error_message": null
+        }
+      ]
+    },
+    {
+      "name": "Configuration Tests",
+      "passed": 2,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "tests": [
+        {
+          "name": "DFastLLMConfig Creation",
+          "status": "PASS",
+          "duration_ms": 0.027179718017578125,
+          "error_message": null
+        },
+        {
+          "name": "DFastLLMConfig from_env",
+          "status": "PASS",
+          "duration_ms": 0.11181831359863281,
+          "error_message": null
+        }
+      ]
+    },
+    {
+      "name": "OpenAI Protocol Tests",
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 100.0,
+      "tests": [
+        {
+          "name": "CompletionRequest Creation",
+          "status": "PASS",
+          "duration_ms": 0.017404556274414062,
+          "error_message": null
+        },
+        {
+          "name": "ChatCompletionRequest Creation",
+          "status": "PASS",
+          "duration_ms": 0.016689300537109375,
+          "error_message": null
+        },
+        {
+          "name": "HealthResponse Creation",
+          "status": "PASS",
+          "duration_ms": 0.0040531158447265625,
+          "error_message": null
+        }
+      ]
+    }
+  ]
+}

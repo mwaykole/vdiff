@@ -4,8 +4,8 @@ import pytest
 from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
 
-from vdiff.config import VDiffConfig
-from vdiff.engine.outputs import CompletionOutput, RequestOutput, RequestMetrics
+from dfastllm.config import DFastLLMConfig
+from dfastllm.engine.outputs import CompletionOutput, RequestOutput, RequestMetrics
 
 
 @pytest.fixture
@@ -67,13 +67,13 @@ def mock_engine():
 @pytest.fixture
 def chat_client(mock_engine):
     """Create a test client for chat completions."""
-    import vdiff.entrypoints.openai.api_server as server
-    from vdiff.entrypoints.openai.serving_chat import OpenAIServingChat
-    from vdiff.entrypoints.openai.serving_completion import OpenAIServingCompletion
+    import dfastllm.entrypoints.openai.api_server as server
+    from dfastllm.entrypoints.openai.serving_chat import OpenAIServingChat
+    from dfastllm.entrypoints.openai.serving_completion import OpenAIServingCompletion
     from fastapi import FastAPI
     from fastapi.responses import StreamingResponse
     
-    config = VDiffConfig(model="chat-model")
+    config = DFastLLMConfig(model="chat-model")
     
     app = FastAPI()
     
@@ -88,7 +88,7 @@ def chat_client(mock_engine):
         model_name="chat-model",
     )
     
-    from vdiff.entrypoints.openai.protocol import ChatCompletionRequest
+    from dfastllm.entrypoints.openai.protocol import ChatCompletionRequest
     
     @app.post("/v1/chat/completions")
     async def create_chat_completion(request: ChatCompletionRequest):

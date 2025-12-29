@@ -9,14 +9,14 @@ class TestMetrics:
     
     def test_setup_metrics(self):
         """Test metrics initialization."""
-        from vdiff.metrics import setup_metrics
+        from dfastllm.metrics import setup_metrics
         
         # Should not raise
         setup_metrics("test-model")
     
     def test_record_request_success(self):
         """Test recording successful request."""
-        from vdiff.metrics import setup_metrics, record_request
+        from dfastllm.metrics import setup_metrics, record_request
         
         setup_metrics("test-model")
         
@@ -32,7 +32,7 @@ class TestMetrics:
     
     def test_record_request_failure(self):
         """Test recording failed request."""
-        from vdiff.metrics import setup_metrics, record_request
+        from dfastllm.metrics import setup_metrics, record_request
         
         setup_metrics("test-model")
         
@@ -41,7 +41,7 @@ class TestMetrics:
     
     def test_metrics_endpoint(self):
         """Test metrics endpoint returns valid response."""
-        from vdiff.metrics import setup_metrics, metrics_endpoint
+        from dfastllm.metrics import setup_metrics, metrics_endpoint
         
         setup_metrics("test-model")
         
@@ -54,7 +54,7 @@ class TestMetrics:
     
     def test_update_kv_cache_hit_rate(self):
         """Test updating KV cache hit rate metric."""
-        from vdiff.metrics import setup_metrics, update_kv_cache_hit_rate
+        from dfastllm.metrics import setup_metrics, update_kv_cache_hit_rate
         
         setup_metrics("test-model")
         
@@ -63,7 +63,7 @@ class TestMetrics:
     
     def test_metrics_context_manager(self):
         """Test MetricsContext context manager."""
-        from vdiff.metrics.prometheus import MetricsContext, setup_metrics
+        from dfastllm.metrics.prometheus import MetricsContext, setup_metrics
         
         setup_metrics("test-model")
         
@@ -79,7 +79,7 @@ class TestMetrics:
     
     def test_metrics_context_on_error(self):
         """Test MetricsContext records failure on exception."""
-        from vdiff.metrics.prometheus import MetricsContext, setup_metrics
+        from dfastllm.metrics.prometheus import MetricsContext, setup_metrics
         
         setup_metrics("test-model")
         
@@ -97,7 +97,7 @@ class TestMetricsNaming:
     
     def test_metric_names(self):
         """Test that metric names match vLLM conventions."""
-        from vdiff.metrics.prometheus import (
+        from dfastllm.metrics.prometheus import (
             setup_metrics,
             request_success_total,
             request_failure_total,

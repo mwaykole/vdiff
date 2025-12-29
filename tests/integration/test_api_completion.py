@@ -4,8 +4,8 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from fastapi.testclient import TestClient
 
-from vdiff.config import VDiffConfig
-from vdiff.engine.outputs import CompletionOutput, RequestOutput, RequestMetrics
+from dfastllm.config import DFastLLMConfig
+from dfastllm.engine.outputs import CompletionOutput, RequestOutput, RequestMetrics
 
 
 @pytest.fixture
@@ -68,13 +68,13 @@ def mock_engine():
 @pytest.fixture
 def app_client(mock_engine):
     """Create a test client with mocked engine."""
-    import vdiff.entrypoints.openai.api_server as server
-    from vdiff.entrypoints.openai.api_server import create_app
-    from vdiff.entrypoints.openai.serving_completion import OpenAIServingCompletion
-    from vdiff.entrypoints.openai.serving_chat import OpenAIServingChat
+    import dfastllm.entrypoints.openai.api_server as server
+    from dfastllm.entrypoints.openai.api_server import create_app
+    from dfastllm.entrypoints.openai.serving_completion import OpenAIServingCompletion
+    from dfastllm.entrypoints.openai.serving_chat import OpenAIServingChat
     
     # Create config
-    config = VDiffConfig(model="test-model")
+    config = DFastLLMConfig(model="test-model")
     
     # Create app without lifespan
     from fastapi import FastAPI
@@ -93,14 +93,14 @@ def app_client(mock_engine):
     )
     
     # Register routes manually
-    from vdiff.entrypoints.openai.protocol import (
+    from dfastllm.entrypoints.openai.protocol import (
         CompletionRequest,
         ChatCompletionRequest,
         HealthResponse,
         ModelList,
     )
     from fastapi.responses import StreamingResponse
-    from vdiff.metrics import setup_metrics, metrics_endpoint
+    from dfastllm.metrics import setup_metrics, metrics_endpoint
     
     setup_metrics("test-model")
     

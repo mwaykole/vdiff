@@ -57,7 +57,7 @@ class TestDiffusionSamplerConfig:
                - use_float32_gumbel=False (quality over speed)
                - enable_early_stopping=True (stop when all unmasked)
         """
-        from vdiff.engine.diffusion_sampler import DiffusionSamplerConfig
+        from dfastllm.engine.diffusion_sampler import DiffusionSamplerConfig
         
         # Step 1: Create config with defaults
         config = DiffusionSamplerConfig()
@@ -82,7 +82,7 @@ class TestDiffusionSamplerConfig:
                - use_float32_gumbel=True (faster but lower quality)
                - enable_early_stopping=False (always run all steps)
         """
-        from vdiff.engine.diffusion_sampler import DiffusionSamplerConfig
+        from dfastllm.engine.diffusion_sampler import DiffusionSamplerConfig
         
         # Step 1: Create config with custom optimization options
         config = DiffusionSamplerConfig(
@@ -114,7 +114,7 @@ class TestAddGumbelNoise:
             2. Apply add_gumbel_noise with temperature=0.0
             3. Verify output equals input (greedy mode = no noise)
         """
-        from vdiff.engine.diffusion_sampler import add_gumbel_noise
+        from dfastllm.engine.diffusion_sampler import add_gumbel_noise
         
         # Step 1: Create input logits
         logits = torch.randn(2, 10, 100)
@@ -134,7 +134,7 @@ class TestAddGumbelNoise:
             3. Apply add_gumbel_noise with temperature=1.0
             4. Verify output differs from input (noise was added)
         """
-        from vdiff.engine.diffusion_sampler import add_gumbel_noise
+        from dfastllm.engine.diffusion_sampler import add_gumbel_noise
         
         # Step 1: Set seed for reproducibility
         torch.manual_seed(42)
@@ -156,7 +156,7 @@ class TestAddGumbelNoise:
             2. Apply add_gumbel_noise with use_float32=False (default)
             3. Verify output dtype is float64 (higher precision)
         """
-        from vdiff.engine.diffusion_sampler import add_gumbel_noise
+        from dfastllm.engine.diffusion_sampler import add_gumbel_noise
         
         # Step 1: Create float32 input
         logits = torch.randn(2, 10, 100, dtype=torch.float32)
@@ -175,7 +175,7 @@ class TestAddGumbelNoise:
             2. Apply add_gumbel_noise with use_float32=True
             3. Verify output dtype is float32 (faster computation)
         """
-        from vdiff.engine.diffusion_sampler import add_gumbel_noise
+        from dfastllm.engine.diffusion_sampler import add_gumbel_noise
         
         # Step 1: Create float32 input
         logits = torch.randn(2, 10, 100, dtype=torch.float32)
@@ -207,7 +207,7 @@ class TestGetNumTransferTokens:
             4. Verify total tokens equals 10 (all masks accounted for)
             5. Verify each step gets 2 tokens (10/5 = 2)
         """
-        from vdiff.engine.diffusion_sampler import get_num_transfer_tokens
+        from dfastllm.engine.diffusion_sampler import get_num_transfer_tokens
         
         # Step 1: Create mask with 10 True values
         mask_index = torch.ones(1, 10, dtype=torch.bool)
@@ -230,7 +230,7 @@ class TestGetNumTransferTokens:
             4. Verify total still equals 10 (remainder distributed)
                Expected: [4, 3, 3] or [3, 4, 3] etc.
         """
-        from vdiff.engine.diffusion_sampler import get_num_transfer_tokens
+        from dfastllm.engine.diffusion_sampler import get_num_transfer_tokens
         
         # Step 1: Create mask with 10 True values
         mask_index = torch.ones(1, 10, dtype=torch.bool)
@@ -254,7 +254,7 @@ class TestGetNumTransferTokens:
             4. Verify batch 0 sums to 5
             5. Verify batch 1 sums to 3
         """
-        from vdiff.engine.diffusion_sampler import get_num_transfer_tokens
+        from dfastllm.engine.diffusion_sampler import get_num_transfer_tokens
         
         # Step 1: Create batched mask with different counts
         mask_index = torch.tensor([
@@ -295,7 +295,7 @@ class TestVectorizedTopkUnmask:
             5. Verify exactly 2 positions are True
             6. Verify indices 1 (conf=0.9) and 4 (conf=0.7) are selected
         """
-        from vdiff.engine.diffusion_sampler import _vectorized_topk_unmask
+        from dfastllm.engine.diffusion_sampler import _vectorized_topk_unmask
         
         # Step 1: Create confidence scores
         confidence = torch.tensor([[0.1, 0.9, 0.5, 0.3, 0.7]])  # batch_size=1
@@ -324,7 +324,7 @@ class TestVectorizedTopkUnmask:
             4. Verify batch 0 has exactly 1 True
             5. Verify batch 1 has exactly 2 True
         """
-        from vdiff.engine.diffusion_sampler import _vectorized_topk_unmask
+        from dfastllm.engine.diffusion_sampler import _vectorized_topk_unmask
         
         # Step 1: Create batched confidence scores
         confidence = torch.tensor([
@@ -354,7 +354,7 @@ class TestVectorizedTopkUnmask:
             3. Call _vectorized_topk_unmask
             4. Verify no positions are True (empty mask)
         """
-        from vdiff.engine.diffusion_sampler import _vectorized_topk_unmask
+        from dfastllm.engine.diffusion_sampler import _vectorized_topk_unmask
         
         # Step 1-2: Create inputs with k=0
         confidence = torch.tensor([[0.1, 0.9, 0.5]])
@@ -416,7 +416,7 @@ class TestDiffusionGenerate:
             4. Verify prompt tokens are preserved at start
             5. Verify no MASK tokens remain in output
         """
-        from vdiff.engine.diffusion_sampler import diffusion_generate
+        from dfastllm.engine.diffusion_sampler import diffusion_generate
         
         # Step 1: Setup
         model = self._create_mock_model()
@@ -451,7 +451,7 @@ class TestDiffusionGenerate:
             3. Verify output shape is (2, 11) - both batches processed
             4. Verify each prompt is preserved in its respective output
         """
-        from vdiff.engine.diffusion_sampler import diffusion_generate
+        from dfastllm.engine.diffusion_sampler import diffusion_generate
         
         # Step 1: Create batched prompt
         model = self._create_mock_model()
@@ -488,7 +488,7 @@ class TestDiffusionGenerate:
         Note: Early stopping should trigger when mask_index.any() is False,
         saving computation when all tokens are already unmasked.
         """
-        from vdiff.engine.diffusion_sampler import diffusion_generate
+        from dfastllm.engine.diffusion_sampler import diffusion_generate
         
         # Step 1: Create high-confidence model
         class ConfidentModel(torch.nn.Module):
@@ -534,7 +534,7 @@ class TestDiffusionGenerate:
         Note: Random remasking selects which tokens to unmask randomly
         rather than by confidence score. Useful for diversity.
         """
-        from vdiff.engine.diffusion_sampler import diffusion_generate
+        from dfastllm.engine.diffusion_sampler import diffusion_generate
         
         # Step 1: Setup
         model = self._create_mock_model()
@@ -567,7 +567,7 @@ class TestDiffusionGenerate:
         Note: Attention mask is extended from (batch, prompt_len) to
         (batch, prompt_len + gen_length) with 1s for new tokens.
         """
-        from vdiff.engine.diffusion_sampler import diffusion_generate
+        from dfastllm.engine.diffusion_sampler import diffusion_generate
         
         # Step 1: Create prompt with attention mask
         model = self._create_mock_model()
@@ -632,7 +632,7 @@ class TestDiffusionSampler:
         Note: Auto-detection of mask_id is important for different models
         that may use different mask token IDs.
         """
-        from vdiff.engine.diffusion_sampler import DiffusionSampler, DiffusionSamplerConfig
+        from dfastllm.engine.diffusion_sampler import DiffusionSampler, DiffusionSamplerConfig
         
         # Step 1: Create mocks
         model = self._create_mock_model()
@@ -660,7 +660,7 @@ class TestDiffusionSampler:
         - Steps adjustment for block count
         - Calling diffusion_generate with all parameters
         """
-        from vdiff.engine.diffusion_sampler import DiffusionSampler, DiffusionSamplerConfig
+        from dfastllm.engine.diffusion_sampler import DiffusionSampler, DiffusionSamplerConfig
         
         # Step 1: Create sampler with config
         model = self._create_mock_model()
@@ -690,7 +690,7 @@ class TestDiffusionSampler:
                (Should decode tokens 4-10, skipping prompt)
             4. Verify tokenizer.decode was called with correct tokens
         """
-        from vdiff.engine.diffusion_sampler import DiffusionSampler
+        from dfastllm.engine.diffusion_sampler import DiffusionSampler
         
         # Step 1: Create sampler
         model = self._create_mock_model()
@@ -725,7 +725,7 @@ class TestIsDiffusionModel:
         LLaDA (Large Language Diffusion with mAsking) is a primary
         diffusion LLM architecture supported by vdiff.
         """
-        from vdiff.engine.diffusion_sampler import is_diffusion_model
+        from dfastllm.engine.diffusion_sampler import is_diffusion_model
         
         # Test various LLaDA name formats
         assert is_diffusion_model("GSAI-ML/LLaDA-8B-Instruct") is True
@@ -740,7 +740,7 @@ class TestIsDiffusionModel:
         
         Dream is another diffusion LLM architecture.
         """
-        from vdiff.engine.diffusion_sampler import is_diffusion_model
+        from dfastllm.engine.diffusion_sampler import is_diffusion_model
         
         # Test Dream model variants
         assert is_diffusion_model("dream-7b") is True
@@ -755,7 +755,7 @@ class TestIsDiffusionModel:
         
         Standard AR models should use normal generation, not diffusion.
         """
-        from vdiff.engine.diffusion_sampler import is_diffusion_model
+        from dfastllm.engine.diffusion_sampler import is_diffusion_model
         
         # Test AR models - should return False
         assert is_diffusion_model("meta-llama/Llama-2-7b") is False
@@ -810,7 +810,7 @@ class TestOptimizationPerformance:
         - CPU, batch=8: ~1.5-2x speedup
         - GPU, batch=8: ~10-50x speedup (vectorization leverages parallelism)
         """
-        from vdiff.engine.diffusion_sampler import _vectorized_topk_unmask
+        from dfastllm.engine.diffusion_sampler import _vectorized_topk_unmask
         
         # Step 1: SETUP - Create test data
         batch_size = 8

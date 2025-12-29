@@ -1,7 +1,7 @@
 """Unit tests for OpenAI protocol models."""
 
 import pytest
-from vdiff.entrypoints.openai.protocol import (
+from dfastllm.entrypoints.openai.protocol import (
     CompletionRequest,
     CompletionResponse,
     CompletionResponseChoice,

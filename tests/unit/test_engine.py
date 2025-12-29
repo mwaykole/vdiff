@@ -1,20 +1,20 @@
-"""Unit tests for vdiff Engine."""
+"""Unit tests for dfastllm Engine."""
 
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 import asyncio
 
-from vdiff.config import VDiffConfig
-from vdiff.engine.sampling_params import SamplingParams
-from vdiff.engine.outputs import CompletionOutput, RequestOutput, RequestMetrics
+from dfastllm.config import DFastLLMConfig
+from dfastllm.engine.sampling_params import SamplingParams
+from dfastllm.engine.outputs import CompletionOutput, RequestOutput, RequestMetrics
 
 
-class TestVDiffConfig:
-    """Test cases for VDiffConfig."""
+class TestDFastLLMConfig:
+    """Test cases for DFastLLMConfig."""
     
     def test_default_values(self):
         """Test default configuration values."""
-        config = VDiffConfig(model="test-model")
+        config = DFastLLMConfig(model="test-model")
         
         assert config.model == "test-model"
         assert config.tokenizer == "test-model"  # Defaults to model
@@ -24,7 +24,7 @@ class TestVDiffConfig:
     
     def test_custom_values(self):
         """Test custom configuration values."""
-        config = VDiffConfig(
+        config = DFastLLMConfig(
             model="custom-model",
             tokenizer="custom-tokenizer",
             host="127.0.0.1",
@@ -43,24 +43,24 @@ class TestVDiffConfig:
     def test_validation_gpu_memory(self):
         """Test GPU memory utilization validation."""
         with pytest.raises(ValueError, match="gpu_memory_utilization"):
-            VDiffConfig(model="test", gpu_memory_utilization=1.5)
+            DFastLLMConfig(model="test", gpu_memory_utilization=1.5)
         
         with pytest.raises(ValueError, match="gpu_memory_utilization"):
-            VDiffConfig(model="test", gpu_memory_utilization=0.0)
+            DFastLLMConfig(model="test", gpu_memory_utilization=0.0)
     
     def test_validation_apd_threshold(self):
         """Test APD threshold validation."""
         with pytest.raises(ValueError, match="apd_threshold"):
-            VDiffConfig(model="test", apd_threshold=1.5)
+            DFastLLMConfig(model="test", apd_threshold=1.5)
     
     def test_validation_apd_max_parallel(self):
         """Test APD max parallel validation."""
         with pytest.raises(ValueError, match="apd_max_parallel"):
-            VDiffConfig(model="test", apd_max_parallel=0)
+            DFastLLMConfig(model="test", apd_max_parallel=0)
     
     def test_to_dict(self):
         """Test conversion to dictionary."""
-        config = VDiffConfig(
+        config = DFastLLMConfig(
             model="test-model",
             port=8080,
         )
@@ -181,21 +181,21 @@ class TestRequestMetrics:
         assert d["parallel_tokens_decoded"] == 15
 
 
-class TestVDiffEngineInit:
-    """Test cases for VDiffEngine initialization."""
+class TestDFastLLMEngineInit:
+    """Test cases for DFastLLMEngine initialization."""
     
-    @patch("vdiff.engine.vdiff_engine.TokenizerWrapper")
-    @patch("vdiff.engine.vdiff_engine.ModelConfig")
-    @patch("vdiff.engine.vdiff_engine.TORCH_AVAILABLE", False)
+    @patch("dfastllm.engine.dfastllm_engine.TokenizerWrapper")
+    @patch("dfastllm.engine.dfastllm_engine.ModelConfig")
+    @patch("dfastllm.engine.dfastllm_engine.TORCH_AVAILABLE", False)
     def test_mock_mode_initialization(self, mock_model_config, mock_tokenizer):
         """Test engine initialization in mock mode (no PyTorch)."""
-        from vdiff.engine.vdiff_engine import VDiffEngine
+        from dfastllm.engine.vdiff_engine import DFastLLMEngine
         
         mock_tokenizer.return_value = MagicMock()
         mock_model_config.from_pretrained.return_value = MagicMock()
         
-        config = VDiffConfig(model="mock-model")
-        engine = VDiffEngine(config)
+        config = DFastLLMConfig(model="mock-model")
+        engine = DFastLLMEngine(config)
         
         assert engine.is_ready is True
         assert engine.config == config
