@@ -297,6 +297,51 @@ HF_HOME: "/tmp/hf_cache"
 
 ---
 
+## Full QA Test Suite Results (123 Tests)
+
+**Test Date:** Mon Dec 29 13:44:16 UTC 2025  
+**GPU:** NVIDIA L40S (46GB VRAM)  
+**Duration:** 20.0 seconds  
+**Pass Rate:** **99.2% (122/123)**
+
+### Results by Category
+
+| Category | Tests | Pass Rate |
+|----------|-------|-----------|
+| 1. Configuration | 15/15 | ✅ 100% |
+| 2. Hybrid Engine | 18/18 | ✅ 100% |
+| 3. Entropy Controller | 12/12 | ✅ 100% |
+| 4. MoR Decoder | 10/10 | ✅ 100% |
+| 5. APD Decoder | 10/10 | ✅ 100% |
+| 6. Continuous Batching | 14/15 | ⚠️ 93.3% |
+| 7. Model & Generation | 15/15 | ✅ 100% |
+| 8. Sampling Parameters | 10/10 | ✅ 100% |
+| 9. Edge Cases | 18/18 | ✅ 100% |
+
+### Results by Priority
+
+| Priority | Tests | Pass Rate |
+|----------|-------|-----------|
+| P0 (Critical) | 29/29 | ✅ 100% |
+| P1 (High) | 65/66 | ⚠️ 98.5% |
+| P2 (Medium) | 27/27 | ✅ 100% |
+| P3 (Low) | 1/1 | ✅ 100% |
+
+### Test Highlights
+
+- ✅ **All P0 Critical tests passed** (100%)
+- ✅ **Model loading & generation** working perfectly
+- ✅ **Memory leak check** passed (no significant leaks)
+- ✅ **All hybrid modes** verified (DEER, SPEC_DIFF, SEMI_AR, ADAPTIVE)
+- ✅ **All edge cases** handled correctly
+
+### Known Issue (P1)
+- `BAT-011`: `BatcherStats.requests_processed` attribute mismatch - minor API inconsistency
+
+### Verdict: ✅ RELEASE CANDIDATE
+
+---
+
 ### Known Limitations
 
 1. E2E API tests require a running server (`DFASTLLM_TEST_URL`)
